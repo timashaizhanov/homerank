@@ -7,6 +7,7 @@ import type {
   ReportResponse,
   SearchFilters
 } from "../types/domain";
+import { geocodeAddress } from "./2gis";
 import { buildQuery } from "./utils";
 
 const API_URL =
@@ -17,6 +18,7 @@ const API_URL =
 const STATIC_API_URL = `${import.meta.env.BASE_URL}api`;
 const usesStaticApi =
   typeof window !== "undefined" && window.location.hostname.endsWith("github.io");
+export const usesStaticApiMode = usesStaticApi;
 
 let staticPropertiesCache: Promise<Property[]> | null = null;
 let staticAnalyticsCache: Promise<MarketAnalyticsResponse> | null = null;
@@ -113,6 +115,37 @@ const filterStaticProperties = (properties: Property[], filters: SearchFilters) 
     return true;
   });
 
+const getDistanceKm = (from: { lon: number; lat: number }, to: [number, number]) => {
+  const earthRadiusKm = 6371;
+  const lat1 = (from.lat * Math.PI) / 180;
+  const lat2 = (to[1] * Math.PI) / 180;
+  const deltaLat = ((to[1] - from.lat) * Math.PI) / 180;
+  const deltaLon = ((to[0] - from.lon) * Math.PI) / 180;
+  const haversine =
+    Math.sin(deltaLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLon / 2) ** 2;
+
+  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+};
+
+const filterStaticCommute = async (properties: Property[], filters: SearchFilters) => {
+  if (filters.workAddress.trim().length < 3 || !filters.maxTravelMinutes) {
+    return properties;
+  }
+
+  const location = filters.workLocation ?? (await geocodeAddress(filters.workAddress, filters.city));
+
+  if (!location) {
+    return properties;
+  }
+
+  const speedKmH =
+    filters.travelMode === "driving" ? 28 : filters.travelMode === "public_transport" ? 22 : 5;
+  const radiusKm = Math.max(0.4, (speedKmH * filters.maxTravelMinutes) / 60);
+
+  return properties.filter((property) => getDistanceKm(location, property.coordinates) <= radiusKm);
+};
+
 const buildStaticReport = (property: Property): ReportResponse => ({
   unlocked: true,
   amountKzt: 3500,
@@ -168,7 +201,10 @@ async function request<T>(path: string): Promise<T> {
 export const api = {
   async getProperties(filters: SearchFilters, page = 1, pageSize = 24) {
     if (usesStaticApi) {
-      const filtered = filterStaticProperties(await getStaticProperties(), filters);
+      const filtered = await filterStaticCommute(
+        filterStaticProperties(await getStaticProperties(), filters),
+        filters
+      );
       const startIndex = (page - 1) * pageSize;
 
       return {
