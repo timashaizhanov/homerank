@@ -22,6 +22,7 @@ interface MapPanelProps {
   isochronePolygons?: Array<Array<[number, number]>>;
   isochroneSource?: Coordinates | null;
   showSafetyLayer?: boolean;
+  onOpenDetails?: (property: Property) => void;
 }
 
 const fallbackCenter: [number, number] = [51.13, 71.43];
@@ -82,7 +83,8 @@ export function MapPanel({
   properties,
   isochronePolygons = [],
   isochroneSource = null,
-  showSafetyLayer = true
+  showSafetyLayer = true,
+  onOpenDetails
 }: MapPanelProps) {
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(properties[0]?.id ?? null);
 
@@ -242,12 +244,13 @@ export function MapPanel({
                           Среда района: {getSafetyProfile(property).label}
                         </p>
                         <p className="mt-2 text-sm font-bold">{formatCurrency(property.price)}</p>
-                        <a
-                          href={`/properties/${property.id}`}
+                        <button
+                          type="button"
+                          onClick={() => onOpenDetails?.(property)}
                           className="mt-3 inline-flex rounded-full bg-navy px-3 py-2 text-xs font-semibold text-white"
                         >
                           Открыть карточку
-                        </a>
+                        </button>
                       </div>
                     </Popup>
                   </Marker>
@@ -278,12 +281,13 @@ export function MapPanel({
                         Среда района: {getSafetyProfile(property).label}
                       </p>
                       <p className="mt-2 text-sm font-bold">{formatCurrency(property.price)}</p>
-                      <a
-                        href={`/properties/${property.id}`}
+                      <button
+                        type="button"
+                        onClick={() => onOpenDetails?.(property)}
                         className="mt-3 inline-flex rounded-full bg-navy px-3 py-2 text-xs font-semibold text-white"
                       >
                         Открыть карточку
-                      </a>
+                      </button>
                     </div>
                   </Popup>
                 </CircleMarker>
@@ -334,12 +338,13 @@ export function MapPanel({
                 {formatNumber(selectedProperty.pricePerSqm)} ₸/м²
               </p>
               <p className="mt-2 text-sm text-slate-300">{selectedProperty.address}</p>
-              <a
-                href={`/properties/${selectedProperty.id}`}
+              <button
+                type="button"
+                onClick={() => onOpenDetails?.(selectedProperty)}
                 className="mt-4 inline-flex rounded-full bg-amber px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#ffd87b]"
               >
                 Открыть карточку
-              </a>
+              </button>
             </div>
           ) : null}
 
