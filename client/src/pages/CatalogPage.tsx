@@ -186,10 +186,10 @@ export function CatalogPage() {
               isochroneSource={resolvedWorkLocation}
             />
           ) : null}
-          <div className="grid gap-6">
+          <div className="grid gap-4 xl:grid-cols-2">
             {isLoading ? <p>Загружаем объекты...</p> : null}
             {filteredItems.map((property) => (
-              <PropertyCard key={property.id} property={property} />
+              <PropertyCard key={property.id} property={property} compact />
             ))}
             {!isLoading && !filteredItems.length ? (
               <p className="rounded-3xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-card">
