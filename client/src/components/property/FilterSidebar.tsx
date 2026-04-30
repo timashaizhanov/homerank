@@ -4,14 +4,24 @@ import type { AddressSuggestion } from "../../types/domain";
 import { useSearchStore } from "../../store/searchStore";
 
 const districtOptions = {
-  Астана: ["Есиль", "Алматинский", "Сарыарка", "Нура"],
-  Алматы: ["Бостандыкский", "Медеуский", "Алмалинский", "Ауэзовский"]
+  Астана: ["Есиль", "Алматинский", "Сарыарка", "Нура", "Сарайшык", "Байконур"],
+  Алматы: [
+    "Бостандыкский",
+    "Медеуский",
+    "Алмалинский",
+    "Ауэзовский",
+    "Алатауский",
+    "Наурызбайский",
+    "Турксибский",
+    "Жетысуский"
+  ]
 } as const;
 const allDistricts = [...districtOptions.Астана, ...districtOptions.Алматы];
 
 const buildingTypes = ["Монолит", "Панель", "Кирпич", "Блок"];
 const conditions = ["Без ремонта", "Косметический", "Евроремонт", "Дизайнерский", "Чистовая отделка"];
 const rooms = ["1", "2", "3", "4", "5+", "Студия"];
+const marketTypes = ["Первичный", "Вторичный"];
 
 export function FilterSidebar() {
   const filters = useSearchStore((state) => state.filters);
@@ -64,7 +74,7 @@ export function FilterSidebar() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="sticky top-24 space-y-5 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-card"
+      className="space-y-5 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-card lg:sticky lg:top-24 lg:self-start"
     >
       <div>
         <p className="text-sm font-semibold text-slate-500">Локация и сделка</p>
@@ -128,6 +138,7 @@ export function FilterSidebar() {
           <input
             type="number"
             className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+            value={filters.minPrice ?? ""}
             onChange={(event) => setFilters({ minPrice: Number(event.target.value) || undefined })}
           />
         </label>
@@ -136,6 +147,7 @@ export function FilterSidebar() {
           <input
             type="number"
             className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+            value={filters.maxPrice ?? ""}
             onChange={(event) => setFilters({ maxPrice: Number(event.target.value) || undefined })}
           />
         </label>
@@ -147,6 +159,7 @@ export function FilterSidebar() {
           <input
             type="number"
             className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+            value={filters.minArea ?? ""}
             onChange={(event) => setFilters({ minArea: Number(event.target.value) || undefined })}
           />
         </label>
@@ -155,9 +168,31 @@ export function FilterSidebar() {
           <input
             type="number"
             className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+            value={filters.maxArea ?? ""}
             onChange={(event) => setFilters({ maxArea: Number(event.target.value) || undefined })}
           />
         </label>
+      </div>
+
+      <div>
+        <p className="text-sm font-semibold text-slate-500">Тип рынка</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {marketTypes.map((marketType) => {
+            const active = filters.marketType === marketType;
+            return (
+              <button
+                key={marketType}
+                type="button"
+                className={`rounded-full px-3 py-2 text-sm ${
+                  active ? "bg-navy text-white" : "bg-slate-100 text-slate-700"
+                }`}
+                onClick={() => setFilters({ marketType: active ? undefined : marketType })}
+              >
+                {marketType}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div>

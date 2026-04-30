@@ -31,20 +31,26 @@ const districtCatalog = {
     { name: "Есиль", lat: 51.1284, lng: 71.4302, basePriceSqm: 550000, score: 8.8 },
     { name: "Алматинский", lat: 51.0917, lng: 71.4671, basePriceSqm: 430000, score: 7.6 },
     { name: "Сарыарка", lat: 51.1694, lng: 71.4048, basePriceSqm: 395000, score: 7.1 },
-    { name: "Нура", lat: 51.1093, lng: 71.4012, basePriceSqm: 510000, score: 8.2 }
+    { name: "Нура", lat: 51.1093, lng: 71.4012, basePriceSqm: 510000, score: 8.2 },
+    { name: "Сарайшык", lat: 51.1355, lng: 71.455, basePriceSqm: 520000, score: 8.4 },
+    { name: "Байконур", lat: 51.1694, lng: 71.4491, basePriceSqm: 420000, score: 7.4 }
   ],
   Алматы: [
     { name: "Бостандыкский", lat: 43.2178, lng: 76.9401, basePriceSqm: 690000, score: 9.2 },
     { name: "Медеуский", lat: 43.2382, lng: 76.9656, basePriceSqm: 730000, score: 9.4 },
     { name: "Алмалинский", lat: 43.2565, lng: 76.9284, basePriceSqm: 610000, score: 8.6 },
-    { name: "Ауэзовский", lat: 43.2221, lng: 76.8413, basePriceSqm: 500000, score: 7.9 }
+    { name: "Ауэзовский", lat: 43.2221, lng: 76.8413, basePriceSqm: 500000, score: 7.9 },
+    { name: "Алатауский", lat: 43.3367, lng: 76.8837, basePriceSqm: 430000, score: 7.3 },
+    { name: "Наурызбайский", lat: 43.1886, lng: 76.8021, basePriceSqm: 455000, score: 7.5 },
+    { name: "Турксибский", lat: 43.3456, lng: 76.9918, basePriceSqm: 410000, score: 7.0 },
+    { name: "Жетысуский", lat: 43.2856, lng: 76.9352, basePriceSqm: 445000, score: 7.2 }
   ]
 } as const;
 
 const buildingTypes = ["Монолит", "Панель", "Кирпич", "Блок"] as const;
-const conditions = ["Косметический", "Евроремонт", "Дизайнерский", "Чистовая отделка"] as const;
+const conditions = ["Без ремонта", "Косметический", "Евроремонт", "Дизайнерский", "Чистовая отделка"] as const;
 const marketTypes = ["Первичный", "Вторичный"] as const;
-const roomOptions = ["1", "2", "3", "4", "5+"] as const;
+const roomOptions = ["Студия", "1", "2", "3", "4", "5+"] as const;
 const streets = [
   "Сыганак",
   "Аль-Фараби",
@@ -412,7 +418,9 @@ const districtCenters = {
     "Нура р-н": { lat: 51.1093, lng: 71.4012, score: 8.2, priceSqm: 510000 },
     Нура: { lat: 51.1093, lng: 71.4012, score: 8.2, priceSqm: 510000 },
     "Сарайшык р-н": { lat: 51.1355, lng: 71.455, score: 8.4, priceSqm: 520000 },
-    Сарайшык: { lat: 51.1355, lng: 71.455, score: 8.4, priceSqm: 520000 }
+    Сарайшык: { lat: 51.1355, lng: 71.455, score: 8.4, priceSqm: 520000 },
+    "р-н Байконур": { lat: 51.1694, lng: 71.4491, score: 7.4, priceSqm: 420000 },
+    Байконур: { lat: 51.1694, lng: 71.4491, score: 7.4, priceSqm: 420000 }
   },
   Алматы: {
     "Бостандыкский р-н": { lat: 43.2178, lng: 76.9401, score: 9.2, priceSqm: 690000 },
@@ -422,7 +430,15 @@ const districtCenters = {
     "Алмалинский р-н": { lat: 43.2565, lng: 76.9284, score: 8.6, priceSqm: 610000 },
     Алмалинский: { lat: 43.2565, lng: 76.9284, score: 8.6, priceSqm: 610000 },
     "Ауэзовский р-н": { lat: 43.2221, lng: 76.8413, score: 7.9, priceSqm: 500000 },
-    Ауэзовский: { lat: 43.2221, lng: 76.8413, score: 7.9, priceSqm: 500000 }
+    Ауэзовский: { lat: 43.2221, lng: 76.8413, score: 7.9, priceSqm: 500000 },
+    "Алатауский р-н": { lat: 43.3367, lng: 76.8837, score: 7.3, priceSqm: 430000 },
+    Алатауский: { lat: 43.3367, lng: 76.8837, score: 7.3, priceSqm: 430000 },
+    "Наурызбайский р-н": { lat: 43.1886, lng: 76.8021, score: 7.5, priceSqm: 455000 },
+    Наурызбайский: { lat: 43.1886, lng: 76.8021, score: 7.5, priceSqm: 455000 },
+    "Турксибский р-н": { lat: 43.3456, lng: 76.9918, score: 7.0, priceSqm: 410000 },
+    Турксибский: { lat: 43.3456, lng: 76.9918, score: 7.0, priceSqm: 410000 },
+    "Жетысуский р-н": { lat: 43.2856, lng: 76.9352, score: 7.2, priceSqm: 445000 },
+    Жетысуский: { lat: 43.2856, lng: 76.9352, score: 7.2, priceSqm: 445000 }
   }
 } as const;
 
@@ -439,13 +455,15 @@ const buildTrend = (base: number, growth: number, labels: string[]) =>
     value: Math.round(base + growth * index)
   }));
 
+const formatRoomTitle = (rooms: string) => (rooms === "Студия" ? "Студия" : `${rooms}-комнатная`);
+
 const createGeneratedApartment = (index: number): Property => {
   const cities = Object.keys(districtCatalog) as Array<keyof typeof districtCatalog>;
   const city = cities[index % cities.length];
   const districts = districtCatalog[city];
   const district = districts[index % districts.length];
   const rooms = roomOptions[index % roomOptions.length];
-  const operation = index % 5 === 0 ? "rent_long" : "sale";
+  const operation = index % 11 === 0 ? "rent_daily" : index % 5 === 0 ? "rent_long" : "sale";
   const buildingType = buildingTypes[index % buildingTypes.length];
   const condition = conditions[index % conditions.length];
   const marketType = marketTypes[index % marketTypes.length];
@@ -488,7 +506,7 @@ const createGeneratedApartment = (index: number): Property => {
   return {
     id: `seed-apartment-${index + 1}`,
     slug: `seed-apartment-${index + 1}-${city.toLowerCase()}-${district.name.toLowerCase()}`,
-    title: `${rooms}-комнатная квартира в ${district.name} районе`,
+    title: `${formatRoomTitle(rooms)} квартира в ${district.name} районе`,
     category: "residential",
     propertyType: "Квартира",
     operation,
@@ -569,7 +587,7 @@ const createGeneratedApartment = (index: number): Property => {
       comparables: [
         {
           id: `comp-a-${index + 1}`,
-          title: `${rooms}-комнатная, ${areaTotal - 3} м²`,
+          title: `${formatRoomTitle(rooms)}, ${areaTotal - 3} м²`,
           price: Math.round(price * 0.97),
           pricePerSqm: Math.round(pricePerSqm * 0.98),
           area: areaTotal - 3,
@@ -577,7 +595,7 @@ const createGeneratedApartment = (index: number): Property => {
         },
         {
           id: `comp-b-${index + 1}`,
-          title: `${rooms}-комнатная, ${areaTotal + 4} м²`,
+          title: `${formatRoomTitle(rooms)}, ${areaTotal + 4} м²`,
           price: Math.round(price * 1.04),
           pricePerSqm: Math.round(pricePerSqm * 1.01),
           area: areaTotal + 4,
@@ -602,10 +620,32 @@ const createGeneratedApartment = (index: number): Property => {
 
 const generatedProperties = Array.from({ length: 247 }, (_item, index) => createGeneratedApartment(index));
 
+const districtAliases: Record<"Астана" | "Алматы", Record<string, string>> = {
+  Астана: {
+    "Есильский р-н": "Есиль",
+    "Алматы р-н": "Алматинский",
+    "Алматинский р-н": "Алматинский",
+    "Сарыарка р-н": "Сарыарка",
+    "Нура р-н": "Нура",
+    "Сарайшык р-н": "Сарайшык",
+    "р-н Байконур": "Байконур"
+  },
+  Алматы: {
+    "Бостандыкский р-н": "Бостандыкский",
+    "Медеуский р-н": "Медеуский",
+    "Алмалинский р-н": "Алмалинский",
+    "Ауэзовский р-н": "Ауэзовский",
+    "Алатауский р-н": "Алатауский",
+    "Наурызбайский р-н": "Наурызбайский",
+    "Турксибский р-н": "Турксибский",
+    "Жетысуский р-н": "Жетысуский"
+  }
+};
+
 const normalizeDistrict = (city: "Астана" | "Алматы", district: string) =>
-  districtCenters[city][district as keyof (typeof districtCenters)[typeof city]]
-    ? district
-    : Object.keys(districtCenters[city]).find((name) => district.includes(name.replace(" р-н", ""))) ?? district;
+  districtAliases[city][district] ??
+  Object.keys(districtCenters[city]).find((name) => district.includes(name.replace(" р-н", ""))) ??
+  district;
 
 const createRealListingProperty = (
   item: {
@@ -641,7 +681,7 @@ const createRealListingProperty = (
     propertyType: "Квартира",
     operation: "sale",
     city: item.city,
-    district: item.district,
+    district: districtKey,
     address: item.address,
     coordinates: [
       Number((center.lng + ((index % 11) - 5) * 0.0034).toFixed(4)),
@@ -740,7 +780,7 @@ const createRealListingProperty = (
 const importedRealProperties = realProperties.map((item, index) => createRealListingProperty(item, index));
 
 export const properties: Property[] = importedRealProperties.length
-  ? importedRealProperties
+  ? [...importedRealProperties, ...featuredProperties, ...generatedProperties]
   : [...featuredProperties, ...generatedProperties];
 
 export const districtAnalytics = (
