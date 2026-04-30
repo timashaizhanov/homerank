@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "../lib/api";
+import { api, usesStaticApiMode } from "../lib/api";
 import {
   fetchIsochrone,
   fetchOsrmDurations,
@@ -29,7 +29,7 @@ export function CatalogPage() {
   const geocodeQuery = useQuery({
     queryKey: ["work-geocode", filters.workAddress, filters.city],
     queryFn: () => geocodeAddress(filters.workAddress, filters.city),
-    enabled: filters.workAddress.trim().length >= 3 && !filters.workLocation
+    enabled: !usesStaticApiMode && filters.workAddress.trim().length >= 3 && !filters.workLocation
   });
   const resolvedWorkLocation = filters.workLocation ?? geocodeQuery.data ?? null;
   const useExactFallbackRouting =
@@ -43,6 +43,7 @@ export function CatalogPage() {
     enabled:
       Boolean(resolvedWorkLocation) &&
       Boolean(filters.maxTravelMinutes) &&
+      !usesStaticApiMode &&
       !useExactFallbackRouting
   });
   const durationQuery = useQuery({
@@ -62,10 +63,14 @@ export function CatalogPage() {
         })),
         filters.travelMode
       ),
-    enabled: useExactFallbackRouting && Boolean(data?.items.length)
+    enabled: !usesStaticApiMode && useExactFallbackRouting && Boolean(data?.items.length)
   });
   const filteredItems = useMemo(() => {
     const items = data?.items ?? [];
+
+    if (usesStaticApiMode) {
+      return items;
+    }
 
     if (useExactFallbackRouting && filters.maxTravelMinutes) {
       const maxDurationSeconds = filters.maxTravelMinutes * 60;
@@ -170,8 +175,7 @@ export function CatalogPage() {
             ) : null}
             {useExactFallbackRouting ? (
               <p className="mt-2 text-sm text-slate-500">
-                Для этого режима фильтр использует точный маршрутный расчёт OSRM по объектам на
-                текущей странице.
+                Подбираем объекты с учётом выбранного времени в пути от указанного адреса.
               </p>
             ) : null}
           </div>
