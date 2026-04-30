@@ -156,12 +156,13 @@ export function PropertyDrawer({ property, onClose }: PropertyDrawerProps) {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3">
-              <div className="relative rounded-3xl border border-slate-200 p-4">
-                <p className="text-sm text-slate-500">Инфраструктура</p>
-                <div className="group absolute right-3 top-3">
+              <div className="group rounded-3xl border border-slate-200 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-sm text-slate-500">Инфраструктура</p>
                   <button
                     aria-label="Как считается рейтинг инфраструктуры"
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-navy hover:text-navy focus:outline-none focus:ring-2 focus:ring-amber"
+                    aria-describedby={`infrastructure-hint-${displayedProperty.id}`}
+                    className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-navy hover:text-navy focus:outline-none focus:ring-2 focus:ring-amber"
                     type="button"
                   >
                     <svg
@@ -179,20 +180,23 @@ export function PropertyDrawer({ property, onClose }: PropertyDrawerProps) {
                       <path d="M12 8h.01" />
                     </svg>
                   </button>
-                  <div className="pointer-events-none absolute right-0 top-9 z-10 w-72 rounded-2xl border border-slate-200 bg-white p-3 text-xs leading-5 text-slate-600 opacity-0 shadow-xl transition group-hover:opacity-100 group-focus-within:opacity-100">
-                    Рейтинг собирается из количества и близости объектов рядом с домом: транспорт,
-                    школы, медицина, торговля и места для отдыха. Учитываются {displayedProperty.nearbyCount}{" "}
-                    точек поблизости
-                    {averageInfrastructureDistance
-                      ? `, средняя дистанция ${formatNumber(averageInfrastructureDistance)} км`
-                      : ""}
-                    {displayedProperty.distanceToTransitKm
-                      ? `, до транспорта ${formatNumber(displayedProperty.distanceToTransitKm)} км`
-                      : ""}
-                    .
-                  </div>
                 </div>
                 <p className="mt-2 text-2xl font-bold text-navy">{displayedProperty.districtScore}/10</p>
+                <p
+                  className="mt-3 max-h-0 overflow-hidden text-xs leading-5 text-slate-600 opacity-0 transition-all duration-200 group-hover:max-h-40 group-hover:opacity-100 group-focus-within:max-h-40 group-focus-within:opacity-100"
+                  id={`infrastructure-hint-${displayedProperty.id}`}
+                >
+                  Рейтинг собирается из количества и близости объектов рядом с домом: транспорт,
+                  школы, медицина, торговля и места для отдыха. Учитываются {displayedProperty.nearbyCount}{" "}
+                  точек поблизости
+                  {averageInfrastructureDistance
+                    ? `, средняя дистанция ${formatNumber(averageInfrastructureDistance)} км`
+                    : ""}
+                  {displayedProperty.distanceToTransitKm
+                    ? `, до транспорта ${formatNumber(displayedProperty.distanceToTransitKm)} км`
+                    : ""}
+                  .
+                </p>
               </div>
               <div className="rounded-3xl border border-slate-200 p-4">
                 <p className="text-sm text-slate-500">Доходность</p>
