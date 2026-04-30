@@ -6,14 +6,21 @@ import { FavoriteButton } from "./FavoriteButton";
 
 interface PropertyCardProps {
   property: Property;
+  compact?: boolean;
 }
 
-export function PropertyCard({ property }: PropertyCardProps) {
+export function PropertyCard({ property, compact = false }: PropertyCardProps) {
+  const visibleFeatures = compact ? property.features.slice(0, 2) : property.features;
+
   return (
-    <article className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-card transition hover:-translate-y-1">
+    <article className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-card transition hover:-translate-y-1">
       <div className="relative">
-        <img className="h-56 w-full object-cover" src={property.images[0]} alt={property.title} />
-        <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+        <img
+          className={`${compact ? "h-36" : "h-56"} w-full object-cover`}
+          src={property.images[0]}
+          alt={property.title}
+        />
+        <div className="absolute left-3 top-3 flex flex-wrap gap-2">
           {property.badges.map((badge) => (
             <span
               key={badge}
@@ -25,23 +32,25 @@ export function PropertyCard({ property }: PropertyCardProps) {
         </div>
       </div>
 
-      <div className="space-y-4 p-5">
-        <div className="flex items-start justify-between gap-4">
+      <div className={`${compact ? "space-y-3 p-4" : "space-y-4 p-5"}`}>
+        <div className={`${compact ? "space-y-2" : "flex items-start justify-between gap-4"}`}>
           <div>
             <p className="text-sm text-slate-500">
               {property.city} · {property.district}
             </p>
-            <h3 className="mt-1 font-heading text-xl font-bold text-ink">{property.title}</h3>
+            <h3 className={`${compact ? "line-clamp-2 text-lg" : "text-xl"} mt-1 font-heading font-bold text-ink`}>
+              {property.title}
+            </h3>
           </div>
-          <div className="text-right">
-            <p className="font-heading text-2xl font-extrabold text-ink">
+          <div className={compact ? "" : "text-right"}>
+            <p className={`${compact ? "text-xl" : "text-2xl"} font-heading font-extrabold text-ink`}>
               {formatCurrency(property.price, property.currency)}
             </p>
             <p className="text-sm text-slate-500">{formatNumber(property.pricePerSqm)} ₸/м²</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 rounded-3xl bg-slate-50 p-4 text-sm sm:grid-cols-4">
+        <div className={`${compact ? "gap-2 rounded-2xl p-3 text-xs" : "gap-3 rounded-3xl p-4 text-sm sm:grid-cols-4"} grid grid-cols-2 bg-slate-50`}>
           <div>
             <p className="text-slate-500">Комнат</p>
             <p className="font-semibold">{property.rooms ?? "n/a"}</p>
@@ -63,27 +72,29 @@ export function PropertyCard({ property }: PropertyCardProps) {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {property.features.map((feature) => (
+          {visibleFeatures.map((feature) => (
             <span key={feature} className="rounded-full bg-sand px-3 py-1 text-xs text-navy">
               {feature}
             </span>
           ))}
         </div>
 
-        <div className="flex items-center justify-between gap-3">
+        <div className={`${compact ? "space-y-3" : "flex items-center justify-between gap-3"}`}>
           <div className="text-sm text-slate-500">
             <p>{property.address}</p>
-            <p className="mt-1">
+            <p className={`${compact ? "hidden" : "mt-1"}`}>
               Опубликовано {formatDate(property.publishedAt)} · Источник {property.sourceName}
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className={`${compact ? "grid grid-cols-[auto_1fr_1fr] gap-2" : "flex gap-3"}`}>
             <FavoriteButton propertyId={property.id} />
             <Link to={`/properties/${property.id}`} className="contents">
-              <Button variant="secondary">Карточка</Button>
+              <Button variant="secondary" className={compact ? "px-3 py-2" : undefined}>
+                Карточка
+              </Button>
             </Link>
             <Link to={`/reports/${property.id}`} className="contents">
-              <Button>Открыть отчёт</Button>
+              <Button className={compact ? "px-3 py-2" : undefined}>Отчёт</Button>
             </Link>
           </div>
         </div>
