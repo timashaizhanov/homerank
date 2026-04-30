@@ -47,8 +47,162 @@ const getStaticAnalytics = () => {
   return staticAnalyticsCache;
 };
 
+const searchStopWords = new Set([
+  "в",
+  "во",
+  "на",
+  "с",
+  "со",
+  "и",
+  "или",
+  "для",
+  "по",
+  "у",
+  "от",
+  "до",
+  "за",
+  "рядом",
+  "около",
+  "возле",
+  "квартира",
+  "квартиру",
+  "объект",
+  "объекты"
+]);
+
+const normalizeSearchText = (value: unknown) =>
+  String(value ?? "")
+    .toLowerCase()
+    .replace(/ё/g, "е")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const getSearchTokens = (value: string) =>
+  normalizeSearchText(value)
+    .split(" ")
+    .filter((token: string) => token.length > 1 && !searchStopWords.has(token));
+
+const districtSearchAliases: Record<string, string> = {
+  Есиль: "Есиле",
+  Нура: "Нуре",
+  Сарыарка: "Сарыарке",
+  Сарайшык: "Сарайшыке",
+  Байконур: "Байконуре",
+  Алматинский: "Алматинском",
+  Бостандыкский: "Бостандыкском",
+  Медеуский: "Медеуском",
+  Алмалинский: "Алмалинском",
+  Ауэзовский: "Ауэзовском",
+  Алатауский: "Алатауском",
+  Наурызбайский: "Наурызбайском",
+  Турксибский: "Турксибском",
+  Жетысуский: "Жетысуском"
+};
+
+const parseSearchConstraints = (query: string) => {
+  const normalized = normalizeSearchText(query);
+  const maxPriceMatch = normalized.match(/(?:до|меньше|ниже)\s+(\d+(?:[.,]\d+)?)\s*(?:млн|миллион|миллиона|миллионов)/);
+  const minPriceMatch = normalized.match(/(?:от|выше|больше)\s+(\d+(?:[.,]\d+)?)\s*(?:млн|миллион|миллиона|миллионов)/);
+  const roomsMatch = normalized.match(/(\d)\s*(?:ком|комн|комнат|комнатная|комнатную)/);
+
+  return {
+    maxPrice: maxPriceMatch ? Number(maxPriceMatch[1].replace(",", ".")) * 1_000_000 : undefined,
+    minPrice: minPriceMatch ? Number(minPriceMatch[1].replace(",", ".")) * 1_000_000 : undefined,
+    rooms: roomsMatch?.[1],
+    wantsStudio: normalized.includes("студия") || normalized.includes("студию"),
+    tokens: getSearchTokens(
+      normalized
+        .replace(/(?:до|меньше|ниже|от|выше|больше)\s+\d+(?:[.,]\d+)?\s*(?:млн|миллион|миллиона|миллионов)/g, " ")
+        .replace(/\d\s*(?:ком|комн|комнат|комнатная|комнатную)/g, " ")
+        .replace(/студия|студию/g, " ")
+    )
+  };
+};
+
+const buildPropertySearchText = (property: Property) => {
+  const detailValues = Object.entries(property.details).flatMap(([key, value]) =>
+    Array.isArray(value) ? [key, ...value] : [key, value]
+  );
+  const infrastructureValues = property.infrastructure.flatMap((item) => [
+    item.name,
+    item.category,
+    `${item.distanceKm} км`
+  ]);
+  const operationLabels: Record<Property["operation"], string> = {
+    sale: "продажа купить покупка",
+    rent_long: "аренда долгосрочная снять",
+    rent_daily: "посуточная аренда сутки",
+    sublease: "субаренда"
+  };
+
+  return normalizeSearchText([
+    property.title,
+    property.city,
+    property.district,
+    districtSearchAliases[property.district],
+    property.address,
+    property.description,
+    property.propertyType,
+    property.category,
+    operationLabels[property.operation],
+    property.marketType,
+    property.buildingType,
+    property.condition,
+    property.rooms ? `${property.rooms} комн ${property.rooms} комнатная` : "",
+    property.yearBuilt,
+    property.features,
+    property.badges,
+    detailValues,
+    property.details.parking ? "паркинг паркингом парковка парковкой" : "",
+    infrastructureValues,
+    property.nearbyCount ? `${property.nearbyCount} точек инфраструктура рядом` : "",
+    property.distanceToTransitKm ? `транспорт транспортом остановка ${property.distanceToTransitKm} км` : "",
+    property.districtScore ? `инфраструктура ${property.districtScore} рейтинг` : "",
+    property.analytics.rentYield ? `доходность ${property.analytics.rentYield}` : "",
+    property.analytics.roi3y ? `roi инвестиция ${property.analytics.roi3y}` : "",
+    property.price ? `${Math.round(property.price / 1_000_000)} млн ${property.price}` : "",
+    property.pricePerSqm
+  ].flat().join(" "));
+};
+
+const matchesSearchQuery = (property: Property, query: string) => {
+  if (!query.trim()) {
+    return true;
+  }
+
+  const constraints = parseSearchConstraints(query);
+
+  if (constraints.maxPrice && property.price > constraints.maxPrice) {
+    return false;
+  }
+
+  if (constraints.minPrice && property.price < constraints.minPrice) {
+    return false;
+  }
+
+  if (constraints.rooms && property.rooms !== constraints.rooms) {
+    return false;
+  }
+
+  if (constraints.wantsStudio && property.rooms !== "Студия") {
+    return false;
+  }
+
+  if (!constraints.tokens.length) {
+    return true;
+  }
+
+  const haystack = buildPropertySearchText(property);
+  return constraints.tokens.every((token) => haystack.includes(token));
+};
+
 const filterStaticProperties = (properties: Property[], filters: SearchFilters) =>
   properties.filter((property) => {
+    if (!matchesSearchQuery(property, filters.searchQuery)) {
+      return false;
+    }
+
     if (filters.city !== "all" && property.city !== filters.city) {
       return false;
     }
@@ -217,6 +371,7 @@ export const api = {
     }
 
     const query = buildQuery({
+      searchQuery: filters.searchQuery,
       city: filters.city === "all" ? undefined : filters.city,
       operation: filters.operation === "all" ? undefined : filters.operation,
       district: filters.district,

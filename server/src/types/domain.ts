@@ -86,6 +86,7 @@ export interface Property {
 }
 
 export interface PropertyFilters {
+  searchQuery?: string;
   city?: string;
   district?: string[];
   operation?: Operation;

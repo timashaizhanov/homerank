@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { SearchFilters } from "../types/domain";
 
 const initialFilters: SearchFilters = {
+  searchQuery: "",
   city: "all",
   operation: "all",
   district: [],
