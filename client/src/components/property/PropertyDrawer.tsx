@@ -157,17 +157,17 @@ export function PropertyDrawer({ property, onClose }: PropertyDrawerProps) {
 
             <div className="grid items-start gap-3 sm:grid-cols-3">
               <div className="group relative rounded-3xl border border-slate-200 p-4">
-                <div className="flex items-start justify-between gap-3">
+                <div className="relative min-h-6 pr-8">
                   <p className="text-sm text-slate-500">Инфраструктура</p>
                   <button
                     aria-label="Как считается рейтинг инфраструктуры"
                     aria-describedby={`infrastructure-hint-${displayedProperty.id}`}
-                    className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-navy hover:text-navy focus:outline-none focus:ring-2 focus:ring-amber"
+                    className="absolute right-0 top-[-2px] inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-navy hover:text-navy focus:outline-none focus:ring-2 focus:ring-amber"
                     type="button"
                   >
                     <svg
                       aria-hidden="true"
-                      className="h-4 w-4"
+                      className="h-3.5 w-3.5"
                       fill="none"
                       stroke="currentColor"
                       strokeLinecap="round"
