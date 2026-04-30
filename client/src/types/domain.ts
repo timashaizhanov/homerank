@@ -176,6 +176,7 @@ export interface AuthResponse {
 }
 
 export interface SearchFilters {
+  searchQuery: string;
   city: CityFilter;
   operation: OperationFilter;
   district: string[];

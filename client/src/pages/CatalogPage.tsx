@@ -21,9 +21,18 @@ export function CatalogPage() {
   const viewMode = useSearchStore((state) => state.viewMode);
   const showSafetyLayer = useSearchStore((state) => state.showSafetyLayer);
   const setViewMode = useSearchStore((state) => state.setViewMode);
+  const setFilters = useSearchStore((state) => state.setFilters);
   const [page, setPage] = useState(1);
   const [drawerProperty, setDrawerProperty] = useState<Property | null>(null);
   const pageSize = 24;
+  const quickSearches = [
+    { label: "2 комн. в Есиле", query: "2 комн Есиль" },
+    { label: "До 50 млн", query: "до 50 млн" },
+    { label: "Монолит + паркинг", query: "монолит паркинг" },
+    { label: "Рядом с транспортом", query: "остановка транспорт" },
+    { label: "С ремонтом", query: "евроремонт" },
+    { label: "Для инвестиций", query: "инвестиция roi доходность" }
+  ];
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["properties", filters, page, pageSize],
@@ -135,6 +144,69 @@ export function CatalogPage() {
           >
             Карта
           </button>
+        </div>
+      </div>
+
+      <div className="sticky top-3 z-30 mb-6 rounded-[2rem] border border-slate-200 bg-white/95 p-4 shadow-card backdrop-blur">
+        <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
+          <label className="relative block">
+            <span className="sr-only">Свободный поиск по каталогу</span>
+            <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+              <svg
+                aria-hidden="true"
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+              >
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3.5-3.5" />
+              </svg>
+            </span>
+            <input
+              className="h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-12 pr-28 text-base font-medium text-ink outline-none transition placeholder:text-slate-400 focus:border-navy focus:bg-white focus:ring-4 focus:ring-navy/10"
+              onChange={(event) => setFilters({ searchQuery: event.target.value })}
+              placeholder="Например: 2 комнаты в Есиле, монолит с паркингом, до 50 млн, рядом с транспортом"
+              type="search"
+              value={filters.searchQuery}
+            />
+            {filters.searchQuery ? (
+              <button
+                type="button"
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-navy hover:text-navy"
+                onClick={() => setFilters({ searchQuery: "" })}
+              >
+                Очистить
+              </button>
+            ) : null}
+          </label>
+          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
+            Ищет по району, адресу, описанию, дому, ремонту, инфраструктуре и цене.
+          </div>
+        </div>
+
+        <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+          {quickSearches.map((item) => {
+            const active = filters.searchQuery === item.query;
+
+            return (
+              <button
+                key={item.label}
+                type="button"
+                className={`shrink-0 rounded-full border px-3 py-2 text-sm font-semibold transition ${
+                  active
+                    ? "border-navy bg-navy text-white"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-navy hover:text-navy"
+                }`}
+                onClick={() => setFilters({ searchQuery: item.query })}
+              >
+                {item.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 

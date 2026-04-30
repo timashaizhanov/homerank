@@ -20,6 +20,7 @@ export function HomePage() {
         rooms: [],
         buildingType: [],
         condition: [],
+        searchQuery: "",
         notFirstFloor: false,
         notLastFloor: false,
         workAddress: "",
