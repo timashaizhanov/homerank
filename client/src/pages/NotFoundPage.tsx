@@ -8,14 +8,11 @@ export function NotFoundPage() {
         <p className="text-sm uppercase tracking-[0.2em] text-slate-500">404</p>
         <h1 className="mt-2 font-heading text-4xl font-bold text-ink">Страница не найдена</h1>
         <p className="mt-4 text-lg text-slate-600">
-          Такого раздела нет или ссылка устарела. Каталог и аналитика доступны из верхнего меню.
+          Такого раздела нет или ссылка устарела. Вернитесь в каталог, чтобы продолжить поиск.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Link to="/catalog">
             <Button>Открыть каталог</Button>
-          </Link>
-          <Link to="/analytics">
-            <Button variant="secondary">Смотреть аналитику</Button>
           </Link>
         </div>
       </div>

@@ -31,9 +31,6 @@ export function AppShell() {
             <NavLink className="text-sm text-slate-200 hover:text-white" to="/catalog">
               {text.nav[0]}
             </NavLink>
-            <NavLink className="text-sm text-slate-200 hover:text-white" to="/analytics">
-              {text.nav[1]}
-            </NavLink>
           </nav>
           <div className="flex items-center gap-3">
             <Button variant="ghost" onClick={toggleLocale}>

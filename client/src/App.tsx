@@ -2,7 +2,6 @@ import { Route, Routes } from "react-router-dom";
 import { AdminRoute } from "./components/auth/AdminRoute";
 import { AppShell } from "./components/layout/AppShell";
 import { AdminPage } from "./pages/AdminPage";
-import { AnalyticsPage } from "./pages/AnalyticsPage";
 import { AuthPage } from "./pages/AuthPage";
 import { CatalogPage } from "./pages/CatalogPage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -20,7 +19,6 @@ export default function App() {
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/properties/:id" element={<PropertyPage />} />
         <Route path="/reports/:id" element={<ReportPage />} />
-        <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route element={<AdminRoute />}>
           <Route path="/admin" element={<AdminPage />} />
