@@ -22,6 +22,38 @@ const OSRM_BASE = "https://router.project-osrm.org";
 const APP_API_BASE =
   import.meta.env.VITE_API_URL ??
   `${window.location.protocol}//${window.location.hostname}:4000/api`;
+const usesStaticPages =
+  typeof window !== "undefined" && window.location.hostname.endsWith("github.io");
+
+const fallbackLocations = {
+  Астана: [
+    { keywords: ["есиль", "сыганак", "туран", "кабанбай", "мангилик", "expo"], location: { lon: 71.4302, lat: 51.1284 } },
+    { keywords: ["нура", "е-36", "улы дала"], location: { lon: 71.4012, lat: 51.1093 } },
+    { keywords: ["сарыарка", "кенесары", "абая"], location: { lon: 71.4048, lat: 51.1694 } },
+    { keywords: ["алматинский", "аль-фараби", "рыскулов"], location: { lon: 71.4671, lat: 51.0917 } },
+    { keywords: ["сарайшык"], location: { lon: 71.455, lat: 51.1355 } },
+    { keywords: ["байконур"], location: { lon: 71.4491, lat: 51.1694 } }
+  ],
+  Алматы: [
+    { keywords: ["бостандык", "аль-фараби", "сатпаева", "навои"], location: { lon: 76.9401, lat: 43.2178 } },
+    { keywords: ["медеу", "медеуский", "достык"], location: { lon: 76.9656, lat: 43.2382 } },
+    { keywords: ["алмалин", "абая", "толе би"], location: { lon: 76.9284, lat: 43.2565 } },
+    { keywords: ["ауэзов"], location: { lon: 76.8413, lat: 43.2221 } },
+    { keywords: ["алатау"], location: { lon: 76.8837, lat: 43.3367 } },
+    { keywords: ["наурызбай"], location: { lon: 76.8021, lat: 43.1886 } },
+    { keywords: ["турксиб"], location: { lon: 76.9918, lat: 43.3456 } },
+    { keywords: ["жетысу"], location: { lon: 76.9352, lat: 43.2856 } }
+  ]
+} satisfies Record<string, Array<{ keywords: string[]; location: Coordinates }>>;
+
+const cityCenters = {
+  Астана: { lon: 71.4302, lat: 51.1284 },
+  Алматы: { lon: 76.9401, lat: 43.2178 }
+} satisfies Record<string, Coordinates>;
+type SupportedFallbackCity = keyof typeof fallbackLocations;
+
+const isSupportedFallbackCity = (value?: string): value is SupportedFallbackCity =>
+  Boolean(value && value in fallbackLocations);
 
 export const has2GisApiKey = () => Boolean(getApiKey());
 export const supportsExactFallbackRouting = (transport: TravelMode) =>
@@ -64,6 +96,10 @@ const readAddressLabel = (item: Record<string, unknown>) => {
 };
 
 export async function fetchAddressSuggestions(query: string, city?: string): Promise<AddressSuggestion[]> {
+  if (usesStaticPages) {
+    return [];
+  }
+
   const url = new URL(`${APP_API_BASE}/locations/suggest`);
   url.searchParams.set("q", query);
   if (city) {
@@ -87,9 +123,44 @@ export async function fetchAddressSuggestions(query: string, city?: string): Pro
   return payload.items ?? [];
 }
 
+const geocodeFallback = (query: string, city?: string): Coordinates | null => {
+  const normalizedQuery = query.toLowerCase();
+  const cities = isSupportedFallbackCity(city)
+    ? [city]
+    : (Object.keys(fallbackLocations) as SupportedFallbackCity[]);
+
+  for (const currentCity of cities) {
+    const match = fallbackLocations[currentCity]?.find((candidate) =>
+      candidate.keywords.some((keyword) => normalizedQuery.includes(keyword))
+    );
+
+    if (match) {
+      return match.location;
+    }
+  }
+
+  const explicitCity = (Object.keys(cityCenters) as SupportedFallbackCity[]).find((name) =>
+    normalizedQuery.includes(name.toLowerCase())
+  );
+
+  if (explicitCity) {
+    return cityCenters[explicitCity];
+  }
+
+  if (isSupportedFallbackCity(city)) {
+    return cityCenters[city];
+  }
+
+  return null;
+};
+
 export async function geocodeAddress(query: string, city?: string): Promise<Coordinates | null> {
-  const suggestions = await fetchAddressSuggestions(query, city);
-  return suggestions[0]?.location ?? null;
+  try {
+    const suggestions = await fetchAddressSuggestions(query, city);
+    return suggestions[0]?.location ?? geocodeFallback(query, city);
+  } catch {
+    return geocodeFallback(query, city);
+  }
 }
 
 const parseRing = (ring: string): Array<[number, number]> =>
