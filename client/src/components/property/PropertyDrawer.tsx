@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import type { Property } from "../../types/domain";
 import { getSafetyProfile } from "../../lib/safety";
@@ -12,8 +12,25 @@ interface PropertyDrawerProps {
 }
 
 export function PropertyDrawer({ property, onClose }: PropertyDrawerProps) {
+  const [displayedProperty, setDisplayedProperty] = useState<Property | null>(property);
+  const [isVisible, setIsVisible] = useState(false);
+
   useEffect(() => {
-    if (!property) {
+    if (property) {
+      setDisplayedProperty(property);
+      const frame = window.requestAnimationFrame(() => setIsVisible(true));
+
+      return () => window.cancelAnimationFrame(frame);
+    }
+
+    setIsVisible(false);
+    const timer = window.setTimeout(() => setDisplayedProperty(null), 280);
+
+    return () => window.clearTimeout(timer);
+  }, [property]);
+
+  useEffect(() => {
+    if (!displayedProperty) {
       return undefined;
     }
 
@@ -30,33 +47,37 @@ export function PropertyDrawer({ property, onClose }: PropertyDrawerProps) {
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "";
     };
-  }, [onClose, property]);
+  }, [displayedProperty, onClose]);
 
-  if (!property) {
+  if (!displayedProperty) {
     return null;
   }
 
-  const safety = getSafetyProfile(property);
-  const details = Object.entries(property.details).slice(0, 8);
+  const safety = getSafetyProfile(displayedProperty);
+  const details = Object.entries(displayedProperty.details).slice(0, 8);
 
   return (
     <div className="fixed inset-0 z-50">
       <button
         aria-label="Закрыть карточку"
-        className="absolute inset-0 bg-ink/45 backdrop-blur-[2px]"
+        className={`absolute inset-0 bg-ink/45 backdrop-blur-[2px] transition-opacity duration-300 ease-out motion-reduce:transition-none ${
+          isVisible ? "opacity-100" : "opacity-0"
+        }`}
         onClick={onClose}
         type="button"
       />
       <aside
         aria-modal="true"
-        className="absolute right-0 top-0 flex h-full w-full flex-col overflow-hidden bg-white shadow-2xl sm:w-[86vw] lg:w-1/2 xl:max-w-[760px]"
+        className={`absolute right-0 top-0 flex h-full w-full flex-col overflow-hidden bg-white shadow-2xl transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform motion-reduce:transition-none sm:w-[86vw] lg:w-1/2 xl:max-w-[760px] ${
+          isVisible ? "translate-x-0" : "translate-x-full"
+        }`}
         role="dialog"
       >
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
           <div>
             <p className="text-sm uppercase tracking-[0.18em] text-slate-500">Карточка объекта</p>
             <p className="mt-1 text-sm text-slate-500">
-              {property.city} · {property.district}
+              {displayedProperty.city} · {displayedProperty.district}
             </p>
           </div>
           <button
@@ -75,14 +96,14 @@ export function PropertyDrawer({ property, onClose }: PropertyDrawerProps) {
         <div className="overflow-y-auto">
           <div className="grid gap-4 p-5">
             <img
-              alt={property.title}
+              alt={displayedProperty.title}
               className="h-64 w-full rounded-3xl object-cover"
-              src={property.images[0]}
+              src={displayedProperty.images[0]}
             />
 
             <div>
               <div className="flex flex-wrap gap-2">
-                {property.badges.map((badge) => (
+                {displayedProperty.badges.map((badge) => (
                   <span key={badge} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-ink">
                     {badge}
                   </span>
@@ -91,25 +112,25 @@ export function PropertyDrawer({ property, onClose }: PropertyDrawerProps) {
                   Среда района: {safety.label}
                 </span>
               </div>
-              <h2 className="mt-3 font-heading text-3xl font-bold text-ink">{property.title}</h2>
-              <p className="mt-2 text-slate-600">{property.address}</p>
+              <h2 className="mt-3 font-heading text-3xl font-bold text-ink">{displayedProperty.title}</h2>
+              <p className="mt-2 text-slate-600">{displayedProperty.address}</p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-3xl bg-slate-50 p-4">
                 <p className="text-sm text-slate-500">Цена</p>
                 <p className="mt-1 font-heading text-2xl font-extrabold text-ink">
-                  {formatCurrency(property.price, property.currency)}
+                  {formatCurrency(displayedProperty.price, displayedProperty.currency)}
                 </p>
-                <p className="mt-1 text-sm text-slate-500">{formatNumber(property.pricePerSqm)} ₸/м²</p>
+                <p className="mt-1 text-sm text-slate-500">{formatNumber(displayedProperty.pricePerSqm)} ₸/м²</p>
               </div>
               <div className="rounded-3xl bg-slate-50 p-4">
                 <p className="text-sm text-slate-500">Параметры</p>
                 <p className="mt-1 font-semibold text-ink">
-                  {property.rooms ?? "n/a"} комн. · {formatNumber(property.areaTotal)} м²
+                  {displayedProperty.rooms ?? "n/a"} комн. · {formatNumber(displayedProperty.areaTotal)} м²
                 </p>
                 <p className="mt-1 text-sm text-slate-500">
-                  Этаж {property.floor}/{property.floorsTotal} · {property.yearBuilt ?? "n/a"} г.
+                  Этаж {displayedProperty.floor}/{displayedProperty.floorsTotal} · {displayedProperty.yearBuilt ?? "n/a"} г.
                 </p>
               </div>
             </div>
@@ -117,23 +138,23 @@ export function PropertyDrawer({ property, onClose }: PropertyDrawerProps) {
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="rounded-3xl border border-slate-200 p-4">
                 <p className="text-sm text-slate-500">Инфраструктура</p>
-                <p className="mt-2 text-2xl font-bold text-navy">{property.districtScore}/10</p>
+                <p className="mt-2 text-2xl font-bold text-navy">{displayedProperty.districtScore}/10</p>
               </div>
               <div className="rounded-3xl border border-slate-200 p-4">
                 <p className="text-sm text-slate-500">Доходность</p>
-                <p className="mt-2 text-2xl font-bold text-navy">{property.analytics.rentYield}%</p>
+                <p className="mt-2 text-2xl font-bold text-navy">{displayedProperty.analytics.rentYield}%</p>
               </div>
               <div className="rounded-3xl border border-slate-200 p-4">
                 <p className="text-sm text-slate-500">ROI 3 года</p>
-                <p className="mt-2 text-2xl font-bold text-navy">{property.analytics.roi3y}%</p>
+                <p className="mt-2 text-2xl font-bold text-navy">{displayedProperty.analytics.roi3y}%</p>
               </div>
             </div>
 
             <div className="rounded-3xl bg-slate-50 p-4">
               <p className="font-semibold text-ink">Описание</p>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{property.description}</p>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{displayedProperty.description}</p>
               <p className="mt-3 text-sm text-slate-500">
-                Опубликовано {formatDate(property.publishedAt)} · Источник {property.sourceName}
+                Опубликовано {formatDate(displayedProperty.publishedAt)} · Источник {displayedProperty.sourceName}
               </p>
             </div>
 
@@ -155,11 +176,11 @@ export function PropertyDrawer({ property, onClose }: PropertyDrawerProps) {
 
         <div className="border-t border-slate-200 bg-white p-4">
           <div className="grid gap-2 sm:grid-cols-[auto_1fr_1fr]">
-            <FavoriteButton propertyId={property.id} />
-            <Link to={`/properties/${property.id}`} className="contents">
+            <FavoriteButton propertyId={displayedProperty.id} />
+            <Link to={`/properties/${displayedProperty.id}`} className="contents">
               <Button variant="secondary" className="w-full">Полная карточка</Button>
             </Link>
-            <Link to={`/reports/${property.id}`} className="contents">
+            <Link to={`/reports/${displayedProperty.id}`} className="contents">
               <Button className="w-full">Открыть отчёт</Button>
             </Link>
           </div>
