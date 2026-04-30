@@ -8,6 +8,7 @@
     "build": "tsc -p tsconfig.json && mkdir -p dist/data && cp src/data/realProperties.json dist/data/realProperties.json",
     "start": "node dist/index.js",
     "prisma:generate": "prisma generate",
+    "export:static-api": "tsx scripts/export-static-api.ts",
     "import:real": "node scripts/import-real-listings.mjs"
   },
   "dependencies": {
