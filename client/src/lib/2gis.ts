@@ -125,9 +125,14 @@ export async function fetchAddressSuggestions(query: string, city?: string): Pro
 
 const geocodeFallback = (query: string, city?: string): Coordinates | null => {
   const normalizedQuery = query.toLowerCase();
+  const explicitCity = (Object.keys(cityCenters) as SupportedFallbackCity[]).find((name) =>
+    normalizedQuery.includes(name.toLowerCase())
+  );
   const cities = isSupportedFallbackCity(city)
     ? [city]
-    : (Object.keys(fallbackLocations) as SupportedFallbackCity[]);
+    : explicitCity
+      ? [explicitCity]
+      : (Object.keys(fallbackLocations) as SupportedFallbackCity[]);
 
   for (const currentCity of cities) {
     const match = fallbackLocations[currentCity]?.find((candidate) =>
@@ -139,16 +144,12 @@ const geocodeFallback = (query: string, city?: string): Coordinates | null => {
     }
   }
 
-  const explicitCity = (Object.keys(cityCenters) as SupportedFallbackCity[]).find((name) =>
-    normalizedQuery.includes(name.toLowerCase())
-  );
+  if (isSupportedFallbackCity(city)) {
+    return cityCenters[city];
+  }
 
   if (explicitCity) {
     return cityCenters[explicitCity];
-  }
-
-  if (isSupportedFallbackCity(city)) {
-    return cityCenters[city];
   }
 
   return null;
