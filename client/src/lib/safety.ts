@@ -30,31 +30,31 @@ export const getSafetyProfile = (property: Pick<Property, "city" | "district" | 
   if (score >= 80) {
     return {
       score,
-      label: "Высокая",
-      tone: "safe",
-      textClassName: "text-emerald-700",
-      badgeClassName: "border-emerald-200 bg-emerald-50 text-emerald-800",
-      mapColor: "#16a34a"
+      label: "Спокойная",
+      tone: "calm",
+      textClassName: "text-teal-700",
+      badgeClassName: "border-teal-200 bg-teal-50 text-teal-800",
+      mapColor: "#14b8a6"
     } as const;
   }
 
   if (score >= 70) {
     return {
       score,
-      label: "Средняя",
+      label: "Сбалансированная",
       tone: "balanced",
-      textClassName: "text-amber-700",
-      badgeClassName: "border-amber-200 bg-amber-50 text-amber-800",
-      mapColor: "#d97706"
+      textClassName: "text-sky-700",
+      badgeClassName: "border-sky-200 bg-sky-50 text-sky-800",
+      mapColor: "#3b82f6"
     } as const;
   }
 
   return {
     score,
-    label: "Требует внимания",
-    tone: "attention",
-    textClassName: "text-rose-700",
-    badgeClassName: "border-rose-200 bg-rose-50 text-rose-800",
-    mapColor: "#dc2626"
+    label: "Оживлённая",
+    tone: "active",
+    textClassName: "text-amber-700",
+    badgeClassName: "border-amber-200 bg-amber-50 text-amber-800",
+    mapColor: "#f59e0b"
   } as const;
 };
