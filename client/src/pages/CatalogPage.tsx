@@ -189,6 +189,7 @@ export function CatalogPage() {
               isochronePolygons={useExactFallbackRouting ? undefined : isochroneQuery.data?.polygons}
               isochroneSource={resolvedWorkLocation}
               showSafetyLayer={showSafetyLayer}
+              onOpenDetails={setDrawerProperty}
             />
           ) : null}
           <div className="grid gap-4 xl:grid-cols-2">
