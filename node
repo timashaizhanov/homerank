@@ -1,0 +1,2 @@
+#!/bin/sh
+exec "$(dirname "$0")/.tools/node-v22.22.2-darwin-arm64/bin/node" "$@"

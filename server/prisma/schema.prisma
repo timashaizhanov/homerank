@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  REALTOR
+  ADMIN
+}
+
+enum PropertyCategory {
+  RESIDENTIAL
+  COMMERCIAL
+  LAND
+}
+
+enum OperationType {
+  SALE
+  RENT_LONG
+  RENT_DAILY
+  SUBLEASE
+}
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  passwordHash      String
+  name              String
+  role              UserRole  @default(USER)
+  agencyName        String?
+  reportsPurchased  Report[]
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model Property {
+  id              String           @id @default(cuid())
+  slug            String           @unique
+  category        PropertyCategory
+  propertyType    String
+  operation       OperationType
+  city            String
+  district        String
+  address         String
+  latitude        Float
+  longitude       Float
+  price           Decimal
+  currency        String           @default("KZT")
+  pricePerSqm     Decimal?
+  areaTotal       Float?
+  areaLiving      Float?
+  areaKitchen     Float?
+  rooms           String?
+  floor           Int?
+  floorsTotal     Int?
+  yearBuilt       Int?
+  buildingType    String?
+  marketType      String?
+  condition       String?
+  sourceName      String
+  sourceUrl       String
+  images          String[]
+  description     String
+  sellerName      String?
+  sellerPhone     String?
+  agencyName      String?
+  publishedAt     DateTime
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  details         PropertyDetail?
+  priceHistory    PriceHistory[]
+  reports         Report[]
+}
+
+model PropertyDetail {
+  id               String   @id @default(cuid())
+  propertyId       String   @unique
+  balcony          String?
+  parking          String?
+  furniture        String?
+  appliances       Boolean?
+  internet         Boolean?
+  bathroomType     String?
+  ceilingHeight    Float?
+  security         String?
+  elevator         String?
+  heating          String?
+  landArea         Float?
+  landUnit         String?
+  wallMaterial     String?
+  utilities        Json?
+  legalDocument    String?
+  cadastralNumber  String?
+  property         Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+}
+
+model PriceHistory {
+  id         String   @id @default(cuid())
+  propertyId String
+  price      Decimal
+  recordedAt DateTime @default(now())
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+}
+
+model Report {
+  id         String   @id @default(cuid())
+  propertyId String
+  userId     String
+  paymentId  String
+  amount     Int
+  reportData Json
+  pdfUrl     String?
+  createdAt  DateTime @default(now())
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model DistrictAnalytics {
+  id             String   @id @default(cuid())
+  city           String
+  district       String
+  avgPriceSqm    Float
+  listingsCount  Int
+  demandIndex    Float
+  priceTrend6m   Json
+  priceTrend12m  Json
+  updatedAt      DateTime @updatedAt
+}
