@@ -5,6 +5,7 @@ dist
 .env.*
 coverage
 client/.vite
+client/public/api
 server/prisma/dev.db
 server/prisma/dev.db-journal
 .tools/

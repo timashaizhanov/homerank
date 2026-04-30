@@ -14,6 +14,136 @@ const API_URL =
   (typeof window !== "undefined"
     ? `${window.location.protocol}//${window.location.hostname}:4000/api`
     : "http://127.0.0.1:4000/api");
+const STATIC_API_URL = `${import.meta.env.BASE_URL}api`;
+const usesStaticApi =
+  typeof window !== "undefined" && window.location.hostname.endsWith("github.io");
+
+let staticPropertiesCache: Promise<Property[]> | null = null;
+let staticAnalyticsCache: Promise<MarketAnalyticsResponse> | null = null;
+
+const getStaticProperties = () => {
+  staticPropertiesCache ??= fetch(`${STATIC_API_URL}/properties.json`).then((response) => {
+    if (!response.ok) {
+      throw new Error(`Static API error: ${response.status}`);
+    }
+
+    return response.json() as Promise<Property[]>;
+  });
+
+  return staticPropertiesCache;
+};
+
+const getStaticAnalytics = () => {
+  staticAnalyticsCache ??= fetch(`${STATIC_API_URL}/analytics.json`).then((response) => {
+    if (!response.ok) {
+      throw new Error(`Static API error: ${response.status}`);
+    }
+
+    return response.json() as Promise<MarketAnalyticsResponse>;
+  });
+
+  return staticAnalyticsCache;
+};
+
+const filterStaticProperties = (properties: Property[], filters: SearchFilters) =>
+  properties.filter((property) => {
+    if (filters.city !== "all" && property.city !== filters.city) {
+      return false;
+    }
+
+    if (filters.operation !== "all" && property.operation !== filters.operation) {
+      return false;
+    }
+
+    if (filters.district.length && !filters.district.includes(property.district)) {
+      return false;
+    }
+
+    if (filters.rooms.length && (!property.rooms || !filters.rooms.includes(property.rooms))) {
+      return false;
+    }
+
+    if (filters.minPrice && property.price < filters.minPrice) {
+      return false;
+    }
+
+    if (filters.maxPrice && property.price > filters.maxPrice) {
+      return false;
+    }
+
+    if (filters.minArea && property.areaTotal < filters.minArea) {
+      return false;
+    }
+
+    if (filters.maxArea && property.areaTotal > filters.maxArea) {
+      return false;
+    }
+
+    if (filters.marketType && property.marketType !== filters.marketType) {
+      return false;
+    }
+
+    if (
+      filters.buildingType.length &&
+      (!property.buildingType || !filters.buildingType.includes(property.buildingType))
+    ) {
+      return false;
+    }
+
+    if (
+      filters.condition.length &&
+      (!property.condition || !filters.condition.includes(property.condition))
+    ) {
+      return false;
+    }
+
+    if (filters.notFirstFloor && property.floor === 1) {
+      return false;
+    }
+
+    if (
+      filters.notLastFloor &&
+      property.floor !== undefined &&
+      property.floorsTotal !== undefined &&
+      property.floor === property.floorsTotal
+    ) {
+      return false;
+    }
+
+    return true;
+  });
+
+const buildStaticReport = (property: Property): ReportResponse => ({
+  unlocked: true,
+  amountKzt: 3500,
+  propertyId: property.id,
+  priceHistory: property.analytics.priceTrend12m.map((point, index) => {
+    const date = new Date(Date.UTC(2025, 4 + index, 1));
+
+    return {
+      date: date.toISOString().slice(0, 10),
+      pricePerSqm: point.value
+    };
+  }),
+  investment: {
+    rentYield: property.analytics.rentYield,
+    capRate: property.analytics.capRate,
+    roiForecast: {
+      "1y": property.analytics.roi1y,
+      "3y": property.analytics.roi3y,
+      "5y": property.analytics.roi5y
+    },
+    depositComparison: property.analytics.depositComparison
+  },
+  legal: property.legal,
+  infrastructure: property.infrastructure,
+  market: {
+    comparables: property.analytics.comparables,
+    liquidity: property.analytics.liquidity,
+    exposureDays: property.analytics.exposureDays
+  },
+  seller: property.seller
+});
 
 async function request<T>(path: string): Promise<T> {
   const authRaw =
@@ -36,7 +166,20 @@ async function request<T>(path: string): Promise<T> {
 }
 
 export const api = {
-  getProperties(filters: SearchFilters, page = 1, pageSize = 24) {
+  async getProperties(filters: SearchFilters, page = 1, pageSize = 24) {
+    if (usesStaticApi) {
+      const filtered = filterStaticProperties(await getStaticProperties(), filters);
+      const startIndex = (page - 1) * pageSize;
+
+      return {
+        total: filtered.length,
+        page,
+        pageSize,
+        totalPages: Math.max(1, Math.ceil(filtered.length / pageSize)),
+        items: filtered.slice(startIndex, startIndex + pageSize)
+      } satisfies PropertyListResponse;
+    }
+
     const query = buildQuery({
       city: filters.city === "all" ? undefined : filters.city,
       operation: filters.operation === "all" ? undefined : filters.operation,
@@ -57,19 +200,76 @@ export const api = {
 
     return request<PropertyListResponse>(`/properties?${query}`);
   },
-  getProperty(id: string) {
+  async getProperty(id: string) {
+    if (usesStaticApi) {
+      const property = (await getStaticProperties()).find(
+        (item) => item.id === id || item.slug === id
+      );
+
+      if (!property) {
+        throw new Error("Static API error: property not found");
+      }
+
+      return property;
+    }
+
     return request<Property>(`/properties/${id}`);
   },
-  getReport(id: string) {
+  async getReport(id: string) {
+    if (usesStaticApi) {
+      return buildStaticReport(await api.getProperty(id));
+    }
+
     return request<ReportResponse>(`/properties/${id}/report`);
   },
   getAnalytics() {
+    if (usesStaticApi) {
+      return getStaticAnalytics();
+    }
+
     return request<MarketAnalyticsResponse>("/properties/analytics/market");
   },
-  getAdminSummary() {
+  async getAdminSummary() {
+    if (usesStaticApi) {
+      const properties = await getStaticProperties();
+
+      return {
+        totals: {
+          properties: properties.length,
+          activeParsers: 1,
+          successfulPayments: 38,
+          reportRevenueKzt: 133000
+        },
+        parserJobs: [
+          {
+            source: "Krisha.kz",
+            lastRunAt: "2026-04-16T16:00:00.000Z",
+            status: "completed",
+            fetched: 186,
+            deduplicated: 21
+          }
+        ],
+        queues: [
+          { name: "krisha-apartments", nextRun: "Через 5 часов 22 минуты", interval: "6 часов" }
+        ]
+      } satisfies AdminSummaryResponse;
+    }
+
     return request<AdminSummaryResponse>("/admin/summary");
   },
   async login(email: string, password: string) {
+    if (usesStaticApi && email.toLowerCase() === "admin@qala.kz" && password === "REDACTED_DEMO_PASSWORD") {
+      return {
+        user: {
+          id: "admin@qala.kz",
+          email: "admin@qala.kz",
+          name: "Qala Admin",
+          role: "admin"
+        },
+        token: "static-pages-demo-token"
+      } satisfies AuthResponse;
+    }
+
     const response = await fetch(`${API_URL}/auth/login`, {
       method: "POST",
       headers: {
@@ -85,6 +285,18 @@ export const api = {
     return response.json() as Promise<AuthResponse>;
   },
   async register(payload: { email: string; name: string; password: string }) {
+    if (usesStaticApi) {
+      return {
+        user: {
+          id: payload.email.toLowerCase(),
+          email: payload.email.toLowerCase(),
+          name: payload.name,
+          role: "user"
+        },
+        token: "static-pages-demo-token"
+      } satisfies AuthResponse;
+    }
+
     const response = await fetch(`${API_URL}/auth/register`, {
       method: "POST",
       headers: {
