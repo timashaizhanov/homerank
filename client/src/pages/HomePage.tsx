@@ -44,9 +44,6 @@ export function HomePage() {
               <Link to="/catalog">
                 <Button>{text.heroCtaPrimary}</Button>
               </Link>
-              <Link to="/analytics">
-                <Button variant="ghost">{text.heroCtaSecondary}</Button>
-              </Link>
             </div>
           </div>
 
