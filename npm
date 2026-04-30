@@ -1,0 +1,6 @@
+#!/bin/sh
+ROOT_DIR="$(dirname "$0")"
+NODE_BIN="$ROOT_DIR/.tools/node-v22.22.2-darwin-arm64/bin/node"
+NPM_CLI="$ROOT_DIR/.tools/node-v22.22.2-darwin-arm64/lib/node_modules/npm/bin/npm-cli.js"
+export PATH="$ROOT_DIR/.tools/node-v22.22.2-darwin-arm64/bin:$PATH"
+exec "$NODE_BIN" "$NPM_CLI" "$@"
