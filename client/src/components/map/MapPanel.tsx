@@ -104,7 +104,16 @@ export function MapPanel({
     }
   }, [properties, selectedProperty, selectedPropertyId]);
 
-  const visibleProperties = properties.slice(0, 6);
+  const visibleProperties = useMemo(() => {
+    const firstProperties = properties.slice(0, 6);
+
+    if (!selectedProperty || firstProperties.some((property) => property.id === selectedProperty.id)) {
+      return firstProperties;
+    }
+
+    return [selectedProperty, ...firstProperties.slice(0, 5)];
+  }, [properties, selectedProperty]);
+
   const safetyZones = useMemo(() => {
     const grouped = new Map<string, { properties: Property[]; lon: number; lat: number }>();
 
@@ -325,50 +334,47 @@ export function MapPanel({
         </div>
 
         <div className="space-y-3">
-          {selectedProperty ? (
-            <div className="rounded-3xl border border-white/10 bg-white/8 p-4">
-              <p className="text-sm text-slate-300">{selectedProperty.district}</p>
-              <p className="mt-1 font-semibold">{selectedProperty.title}</p>
-              <p className="mt-2 text-lg font-bold">{formatCurrency(selectedProperty.price)}</p>
-              <p className="mt-1 text-sm text-slate-300">
-                Среда района: {getSafetyProfile(selectedProperty).label}
-              </p>
-              <p className="text-sm text-slate-300">
-                {selectedProperty.rooms} комн. · {formatNumber(selectedProperty.areaTotal)} м² ·{" "}
-                {formatNumber(selectedProperty.pricePerSqm)} ₸/м²
-              </p>
-              <p className="mt-2 text-sm text-slate-300">{selectedProperty.address}</p>
-              <button
-                type="button"
-                onClick={() => onOpenDetails?.(selectedProperty)}
-                className="mt-4 inline-flex rounded-full bg-amber px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#ffd87b]"
-              >
-                Открыть карточку
-              </button>
-            </div>
-          ) : null}
-
           {visibleProperties.map((property) => (
-            <button
+            <div
               key={property.id}
-              type="button"
-              className={`block w-full rounded-3xl border p-4 text-left transition ${
+              className={`rounded-3xl border p-4 transition ${
                 property.id === selectedProperty?.id
-                  ? "border-amber bg-white/10"
+                  ? "border-amber bg-white/[0.12] shadow-[0_0_0_1px_rgba(255,209,102,0.22)]"
                   : "border-white/10 bg-white/5 hover:bg-white/8"
               }`}
-              onClick={() => setSelectedPropertyId(property.id)}
             >
-              <p className="text-sm text-slate-300">{property.district}</p>
-              <p className="mt-1 font-semibold">{property.title}</p>
-              <p className="mt-2 text-lg font-bold">{formatCurrency(property.price)}</p>
-              <p className="mt-1 text-sm text-slate-300">
-                Среда: {getSafetyProfile(property).label}
-              </p>
-              <p className="text-sm text-slate-300">
-                {property.rooms} комн. · {formatNumber(property.areaTotal)} м²
-              </p>
-            </button>
+              <button
+                type="button"
+                className="block w-full text-left"
+                onClick={() => setSelectedPropertyId(property.id)}
+              >
+                <p className="text-sm text-slate-300">{property.district}</p>
+                <p className="mt-1 font-semibold">{property.title}</p>
+                <p className="mt-2 text-lg font-bold">{formatCurrency(property.price)}</p>
+                <p className="mt-1 text-sm text-slate-300">
+                  Среда: {getSafetyProfile(property).label}
+                </p>
+                <p className="text-sm text-slate-300">
+                  {property.rooms} комн. · {formatNumber(property.areaTotal)} м²
+                  {property.id === selectedProperty?.id
+                    ? ` · ${formatNumber(property.pricePerSqm)} ₸/м²`
+                    : ""}
+                </p>
+                {property.id === selectedProperty?.id ? (
+                  <p className="mt-2 text-sm text-slate-300">{property.address}</p>
+                ) : null}
+              </button>
+
+              {property.id === selectedProperty?.id ? (
+                <button
+                  type="button"
+                  onClick={() => onOpenDetails?.(property)}
+                  className="mt-4 inline-flex rounded-full bg-amber px-4 py-2 text-sm font-semibold text-ink transition hover:bg-[#ffd87b]"
+                >
+                  Открыть карточку
+                </button>
+              ) : null}
+            </div>
           ))}
         </div>
       </div>
