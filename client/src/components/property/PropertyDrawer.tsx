@@ -55,6 +55,26 @@ export function PropertyDrawer({ property, onClose }: PropertyDrawerProps) {
 
   const safety = getSafetyProfile(displayedProperty);
   const details = Object.entries(displayedProperty.details).slice(0, 8);
+  const infrastructureCategories = Array.from(
+    new Set(displayedProperty.infrastructure.map((item) => item.category))
+  );
+  const averageInfrastructureDistance =
+    displayedProperty.infrastructure.length > 0
+      ? displayedProperty.infrastructure.reduce((sum, item) => sum + item.distanceKm, 0) /
+        displayedProperty.infrastructure.length
+      : null;
+  const houseFacts = [
+    displayedProperty.yearBuilt ? { label: "Год постройки", value: `${displayedProperty.yearBuilt}` } : null,
+    displayedProperty.buildingType ? { label: "Тип дома", value: displayedProperty.buildingType } : null,
+    displayedProperty.floorsTotal ? { label: "Этажность", value: `${displayedProperty.floorsTotal} этажей` } : null,
+    displayedProperty.condition ? { label: "Состояние", value: displayedProperty.condition } : null,
+    displayedProperty.details.parking ? { label: "Паркинг", value: String(displayedProperty.details.parking) } : null,
+    displayedProperty.details.elevator ? { label: "Лифт", value: String(displayedProperty.details.elevator) } : null,
+    displayedProperty.details.security ? { label: "Безопасность дома", value: String(displayedProperty.details.security) } : null,
+    displayedProperty.details.ceilingHeight
+      ? { label: "Потолки", value: `${String(displayedProperty.details.ceilingHeight)} м` }
+      : null
+  ].filter((item): item is { label: string; value: string } => Boolean(item));
 
   return (
     <div className="fixed inset-0 z-50">
@@ -136,8 +156,42 @@ export function PropertyDrawer({ property, onClose }: PropertyDrawerProps) {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-3xl border border-slate-200 p-4">
+              <div className="relative rounded-3xl border border-slate-200 p-4">
                 <p className="text-sm text-slate-500">Инфраструктура</p>
+                <div className="group absolute right-3 top-3">
+                  <button
+                    aria-label="Как считается рейтинг инфраструктуры"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-navy hover:text-navy focus:outline-none focus:ring-2 focus:ring-amber"
+                    type="button"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      className="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle cx="12" cy="12" r="9" />
+                      <path d="M12 11v5" />
+                      <path d="M12 8h.01" />
+                    </svg>
+                  </button>
+                  <div className="pointer-events-none absolute right-0 top-9 z-10 w-72 rounded-2xl border border-slate-200 bg-white p-3 text-xs leading-5 text-slate-600 opacity-0 shadow-xl transition group-hover:opacity-100 group-focus-within:opacity-100">
+                    Рейтинг собирается из количества и близости объектов рядом с домом: транспорт,
+                    школы, медицина, торговля и места для отдыха. Учитываются {displayedProperty.nearbyCount}{" "}
+                    точек поблизости
+                    {averageInfrastructureDistance
+                      ? `, средняя дистанция ${formatNumber(averageInfrastructureDistance)} км`
+                      : ""}
+                    {displayedProperty.distanceToTransitKm
+                      ? `, до транспорта ${formatNumber(displayedProperty.distanceToTransitKm)} км`
+                      : ""}
+                    .
+                  </div>
+                </div>
                 <p className="mt-2 text-2xl font-bold text-navy">{displayedProperty.districtScore}/10</p>
               </div>
               <div className="rounded-3xl border border-slate-200 p-4">
@@ -153,6 +207,24 @@ export function PropertyDrawer({ property, onClose }: PropertyDrawerProps) {
             <div className="rounded-3xl bg-slate-50 p-4">
               <p className="font-semibold text-ink">Описание</p>
               <p className="mt-2 text-sm leading-6 text-slate-600">{displayedProperty.description}</p>
+              {houseFacts.length ? (
+                <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+                  <p className="text-sm font-semibold text-ink">О доме</p>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {houseFacts.map((fact) => (
+                      <div key={fact.label} className="rounded-2xl bg-slate-50 px-3 py-2">
+                        <p className="text-xs text-slate-500">{fact.label}</p>
+                        <p className="mt-1 text-sm font-semibold text-ink">{fact.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {infrastructureCategories.length ? (
+                    <p className="mt-3 text-xs leading-5 text-slate-500">
+                      Поблизости учитываются категории: {infrastructureCategories.slice(0, 5).join(", ")}.
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
               <p className="mt-3 text-sm text-slate-500">
                 Опубликовано {formatDate(displayedProperty.publishedAt)} · Источник {displayedProperty.sourceName}
               </p>
