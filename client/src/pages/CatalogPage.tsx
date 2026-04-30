@@ -13,6 +13,8 @@ import { useSearchStore } from "../store/searchStore";
 import { FilterSidebar } from "../components/property/FilterSidebar";
 import { MapPanel } from "../components/map/MapPanel";
 import { PropertyCard } from "../components/property/PropertyCard";
+import { PropertyDrawer } from "../components/property/PropertyDrawer";
+import type { Property } from "../types/domain";
 
 export function CatalogPage() {
   const filters = useSearchStore((state) => state.filters);
@@ -20,6 +22,7 @@ export function CatalogPage() {
   const showSafetyLayer = useSearchStore((state) => state.showSafetyLayer);
   const setViewMode = useSearchStore((state) => state.setViewMode);
   const [page, setPage] = useState(1);
+  const [drawerProperty, setDrawerProperty] = useState<Property | null>(null);
   const pageSize = 24;
 
   const { data, isLoading, error } = useQuery({
@@ -191,7 +194,12 @@ export function CatalogPage() {
           <div className="grid gap-4 xl:grid-cols-2">
             {isLoading ? <p>Загружаем объекты...</p> : null}
             {filteredItems.map((property) => (
-              <PropertyCard key={property.id} property={property} compact />
+              <PropertyCard
+                key={property.id}
+                property={property}
+                compact
+                onOpenDetails={setDrawerProperty}
+              />
             ))}
             {!isLoading && !filteredItems.length ? (
               <p className="rounded-3xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-card">
@@ -225,6 +233,7 @@ export function CatalogPage() {
           </div>
         </div>
       </div>
+      <PropertyDrawer property={drawerProperty} onClose={() => setDrawerProperty(null)} />
     </section>
   );
 }

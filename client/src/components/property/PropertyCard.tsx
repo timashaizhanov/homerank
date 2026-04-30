@@ -8,9 +8,10 @@ import { FavoriteButton } from "./FavoriteButton";
 interface PropertyCardProps {
   property: Property;
   compact?: boolean;
+  onOpenDetails?: (property: Property) => void;
 }
 
-export function PropertyCard({ property, compact = false }: PropertyCardProps) {
+export function PropertyCard({ property, compact = false, onOpenDetails }: PropertyCardProps) {
   const visibleFeatures = compact ? property.features.slice(0, 2) : property.features;
   const safety = getSafetyProfile(property);
 
@@ -97,11 +98,21 @@ export function PropertyCard({ property, compact = false }: PropertyCardProps) {
           </div>
           <div className={`${compact ? "grid grid-cols-[auto_1fr_1fr] gap-2" : "flex gap-3"}`}>
             <FavoriteButton propertyId={property.id} />
-            <Link to={`/properties/${property.id}`} className="contents">
-              <Button variant="secondary" className={compact ? "px-3 py-2" : undefined}>
+            {onOpenDetails ? (
+              <Button
+                onClick={() => onOpenDetails(property)}
+                variant="secondary"
+                className={compact ? "px-3 py-2" : undefined}
+              >
                 Карточка
               </Button>
-            </Link>
+            ) : (
+              <Link to={`/properties/${property.id}`} className="contents">
+                <Button variant="secondary" className={compact ? "px-3 py-2" : undefined}>
+                  Карточка
+                </Button>
+              </Link>
+            )}
             <Link to={`/reports/${property.id}`} className="contents">
               <Button className={compact ? "px-3 py-2" : undefined}>Отчёт</Button>
             </Link>
