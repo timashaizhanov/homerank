@@ -95,7 +95,7 @@ const parseSearchConstraints = (query: string) => {
   const normalized = normalizeSearchText(query);
   const maxPriceMatch = normalized.match(/(?:до|меньше|ниже)\s+(\d+(?:[.,]\d+)?)\s*(?:млн|миллион|миллиона|миллионов)/);
   const minPriceMatch = normalized.match(/(?:от|выше|больше)\s+(\d+(?:[.,]\d+)?)\s*(?:млн|миллион|миллиона|миллионов)/);
-  const roomsMatch = normalized.match(/(\d)\s*(?:ком|комн|комнат|комнатная|комнатную)/);
+  const roomsMatch = normalized.match(/(\d)\s*(?:комнатная|комнатную|комнаты|комнат|комн|ком)/);
 
   return {
     maxPrice: maxPriceMatch ? Number(maxPriceMatch[1].replace(",", ".")) * 1_000_000 : undefined,
@@ -105,7 +105,7 @@ const parseSearchConstraints = (query: string) => {
     tokens: getSearchTokens(
       normalized
         .replace(/(?:до|меньше|ниже|от|выше|больше)\s+\d+(?:[.,]\d+)?\s*(?:млн|миллион|миллиона|миллионов)/g, " ")
-        .replace(/\d\s*(?:ком|комн|комнат|комнатная|комнатную)/g, " ")
+        .replace(/\d\s*(?:комнатная|комнатную|комнаты|комнат|комн|ком)/g, " ")
         .replace(/студия|студию/g, " ")
     )
   };
