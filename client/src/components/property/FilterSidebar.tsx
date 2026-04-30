@@ -74,7 +74,7 @@ export function FilterSidebar() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-5 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-card lg:sticky lg:top-24 lg:self-start"
+      className="space-y-5 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-card lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:pr-4"
     >
       <div>
         <p className="text-sm font-semibold text-slate-500">Локация и сделка</p>
