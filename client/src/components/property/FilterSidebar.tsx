@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { fetchAddressSuggestions, has2GisApiKey } from "../../lib/2gis";
+import { CRIME_MAP_URL } from "../../lib/safety";
 import type { AddressSuggestion } from "../../types/domain";
 import { useSearchStore } from "../../store/searchStore";
 
@@ -130,6 +131,31 @@ export function FilterSidebar() {
             );
           })}
         </div>
+      </div>
+
+      <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+        <div className="flex items-start gap-3">
+          <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-white text-navy">
+            <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9">
+              <path d="M12 3 5 6v5c0 4.5 2.8 8.2 7 10 4.2-1.8 7-5.5 7-10V6l-7-3Z" />
+              <path d="m9.5 12 1.7 1.7 3.6-4" />
+            </svg>
+          </span>
+          <div>
+            <p className="text-sm font-semibold text-slate-700">Безопасность района</p>
+            <p className="mt-1 text-sm text-slate-500">
+              Смотрите предварительный индекс в карточках и официальный источник по преступности.
+            </p>
+          </div>
+        </div>
+        <a
+          className="mt-4 inline-flex w-full items-center justify-center rounded-full bg-navy px-4 py-3 text-sm font-semibold text-white transition hover:bg-ink"
+          href={CRIME_MAP_URL}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Открыть карту преступности
+        </a>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  Circle,
   CircleMarker,
   MapContainer,
   Marker,
@@ -14,6 +15,7 @@ import L, { divIcon, latLngBounds } from "leaflet";
 import type { LatLngBoundsExpression } from "leaflet";
 import type { Coordinates, Property } from "../../types/domain";
 import { formatCurrency, formatNumber } from "../../lib/utils";
+import { CRIME_MAP_URL, getSafetyProfile } from "../../lib/safety";
 
 interface MapPanelProps {
   properties: Property[];
@@ -34,6 +36,17 @@ const selectedMarkerIcon = divIcon({
   iconSize: [28, 28],
   iconAnchor: [14, 14]
 });
+
+type SafetyZone = {
+  key: string;
+  city: string;
+  district: string;
+  center: [number, number];
+  count: number;
+  score: number;
+  label: string;
+  color: string;
+};
 
 function FitBoundsController({
   properties,
@@ -88,6 +101,34 @@ export function MapPanel({
   }, [properties, selectedProperty, selectedPropertyId]);
 
   const visibleProperties = properties.slice(0, 6);
+  const safetyZones = useMemo(() => {
+    const grouped = new Map<string, { properties: Property[]; lon: number; lat: number }>();
+
+    properties.forEach((property) => {
+      const key = `${property.city}:${property.district}`;
+      const group = grouped.get(key) ?? { properties: [], lon: 0, lat: 0 };
+      group.properties.push(property);
+      group.lon += property.coordinates[0];
+      group.lat += property.coordinates[1];
+      grouped.set(key, group);
+    });
+
+    return Array.from(grouped.entries()).map(([key, group]): SafetyZone => {
+      const reference = group.properties[0];
+      const safety = getSafetyProfile(reference);
+
+      return {
+        key,
+        city: reference.city,
+        district: reference.district,
+        center: [group.lat / group.properties.length, group.lon / group.properties.length],
+        count: group.properties.length,
+        score: safety.score,
+        label: safety.label,
+        color: safety.mapColor
+      };
+    });
+  }, [properties]);
 
   return (
     <div className="rounded-[2rem] border border-slate-200 bg-gradient-to-br from-[#102a43] via-[#0d1b2a] to-[#17324d] p-5 text-white shadow-card">
@@ -115,6 +156,7 @@ export function MapPanel({
             />
 
             <Pane name="isochrone" style={{ zIndex: 350 }} />
+            <Pane name="safety" style={{ zIndex: 360 }} />
             <Pane name="markers" style={{ zIndex: 450 }} />
             <Pane name="selected-marker" style={{ zIndex: 550 }} />
 
@@ -136,6 +178,26 @@ export function MapPanel({
                   weight: 2
                 }}
               />
+            ))}
+
+            {safetyZones.map((zone) => (
+              <Circle
+                key={zone.key}
+                center={zone.center}
+                radius={950 + Math.max(0, 86 - zone.score) * 55 + Math.min(zone.count, 18) * 25}
+                pathOptions={{
+                  pane: "safety",
+                  color: zone.color,
+                  fillColor: zone.color,
+                  fillOpacity: zone.score >= 80 ? 0.08 : zone.score >= 70 ? 0.13 : 0.18,
+                  opacity: 0.5,
+                  weight: 1
+                }}
+              >
+                <Tooltip direction="top" opacity={0.95}>
+                  {zone.district}: безопасность {zone.label.toLowerCase()}
+                </Tooltip>
+              </Circle>
             ))}
 
             {isochroneSource ? (
@@ -174,6 +236,9 @@ export function MapPanel({
                       <div className="min-w-[220px]">
                         <p className="font-semibold text-ink">{property.title}</p>
                         <p className="mt-1 text-xs text-slate-500">{property.district}</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          Безопасность: {getSafetyProfile(property).label}
+                        </p>
                         <p className="mt-2 text-sm font-bold">{formatCurrency(property.price)}</p>
                         <a
                           href={`/properties/${property.id}`}
@@ -207,6 +272,9 @@ export function MapPanel({
                     <div className="min-w-[220px]">
                       <p className="font-semibold text-ink">{property.title}</p>
                       <p className="mt-1 text-xs text-slate-500">{property.district}</p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Безопасность: {getSafetyProfile(property).label}
+                      </p>
                       <p className="mt-2 text-sm font-bold">{formatCurrency(property.price)}</p>
                       <a
                         href={`/properties/${property.id}`}
@@ -228,12 +296,31 @@ export function MapPanel({
           ) : null}
 
           <div className="absolute bottom-4 left-4 z-[600] rounded-2xl bg-ink/75 p-4 backdrop-blur">
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-300">Reachability</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-300">Слои карты</p>
             <p className="mt-2 text-sm text-slate-100">
               {isochronePolygons.length
                 ? "Зона времени до работы показана поверх карты и участвует в фильтрации."
                 : "Выберите адрес работы и время в пути, чтобы увидеть доступную зону на карте."}
             </p>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-100">
+              <span className="inline-flex items-center gap-1">
+                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> безопаснее
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <span className="h-2.5 w-2.5 rounded-full bg-amber-600" /> средне
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <span className="h-2.5 w-2.5 rounded-full bg-rose-600" /> внимательнее
+              </span>
+            </div>
+            <a
+              className="mt-3 inline-flex text-xs font-semibold text-amber underline-offset-4 hover:underline"
+              href={CRIME_MAP_URL}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Официальная карта преступности
+            </a>
           </div>
         </div>
 
@@ -243,6 +330,9 @@ export function MapPanel({
               <p className="text-sm text-slate-300">{selectedProperty.district}</p>
               <p className="mt-1 font-semibold">{selectedProperty.title}</p>
               <p className="mt-2 text-lg font-bold">{formatCurrency(selectedProperty.price)}</p>
+              <p className="mt-1 text-sm text-slate-300">
+                Безопасность района: {getSafetyProfile(selectedProperty).label}
+              </p>
               <p className="text-sm text-slate-300">
                 {selectedProperty.rooms} комн. · {formatNumber(selectedProperty.areaTotal)} м² ·{" "}
                 {formatNumber(selectedProperty.pricePerSqm)} ₸/м²
@@ -271,6 +361,9 @@ export function MapPanel({
               <p className="text-sm text-slate-300">{property.district}</p>
               <p className="mt-1 font-semibold">{property.title}</p>
               <p className="mt-2 text-lg font-bold">{formatCurrency(property.price)}</p>
+              <p className="mt-1 text-sm text-slate-300">
+                Безопасность: {getSafetyProfile(property).label}
+              </p>
               <p className="text-sm text-slate-300">
                 {property.rooms} комн. · {formatNumber(property.areaTotal)} м²
               </p>

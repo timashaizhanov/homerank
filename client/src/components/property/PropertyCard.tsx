@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import type { Property } from "../../types/domain";
 import { formatCurrency, formatDate, formatNumber } from "../../lib/utils";
+import { getSafetyProfile } from "../../lib/safety";
 import { Button } from "../ui/Button";
 import { FavoriteButton } from "./FavoriteButton";
 
@@ -11,6 +12,7 @@ interface PropertyCardProps {
 
 export function PropertyCard({ property, compact = false }: PropertyCardProps) {
   const visibleFeatures = compact ? property.features.slice(0, 2) : property.features;
+  const safety = getSafetyProfile(property);
 
   return (
     <article className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-card transition hover:-translate-y-1">
@@ -72,6 +74,13 @@ export function PropertyCard({ property, compact = false }: PropertyCardProps) {
         </div>
 
         <div className="flex flex-wrap gap-2">
+          <span className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold ${safety.badgeClassName}`}>
+            <svg aria-hidden="true" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 3 5 6v5c0 4.5 2.8 8.2 7 10 4.2-1.8 7-5.5 7-10V6l-7-3Z" />
+              <path d="m9.5 12 1.7 1.7 3.6-4" />
+            </svg>
+            Безопасность: {safety.label}
+          </span>
           {visibleFeatures.map((feature) => (
             <span key={feature} className="rounded-full bg-sand px-3 py-1 text-xs text-navy">
               {feature}
