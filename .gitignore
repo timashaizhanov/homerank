@@ -7,3 +7,5 @@ coverage
 client/.vite
 server/prisma/dev.db
 server/prisma/dev.db-journal
+.tools/
+.tools/
