@@ -17,6 +17,7 @@ import { PropertyCard } from "../components/property/PropertyCard";
 export function CatalogPage() {
   const filters = useSearchStore((state) => state.filters);
   const viewMode = useSearchStore((state) => state.viewMode);
+  const showSafetyLayer = useSearchStore((state) => state.showSafetyLayer);
   const setViewMode = useSearchStore((state) => state.setViewMode);
   const [page, setPage] = useState(1);
   const pageSize = 24;
@@ -184,6 +185,7 @@ export function CatalogPage() {
               properties={filteredItems}
               isochronePolygons={useExactFallbackRouting ? undefined : isochroneQuery.data?.polygons}
               isochroneSource={resolvedWorkLocation}
+              showSafetyLayer={showSafetyLayer}
             />
           ) : null}
           <div className="grid gap-4 xl:grid-cols-2">

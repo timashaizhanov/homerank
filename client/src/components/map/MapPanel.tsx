@@ -15,12 +15,13 @@ import L, { divIcon, latLngBounds } from "leaflet";
 import type { LatLngBoundsExpression } from "leaflet";
 import type { Coordinates, Property } from "../../types/domain";
 import { formatCurrency, formatNumber } from "../../lib/utils";
-import { CRIME_MAP_URL, getSafetyProfile } from "../../lib/safety";
+import { getSafetyProfile } from "../../lib/safety";
 
 interface MapPanelProps {
   properties: Property[];
   isochronePolygons?: Array<Array<[number, number]>>;
   isochroneSource?: Coordinates | null;
+  showSafetyLayer?: boolean;
 }
 
 const fallbackCenter: [number, number] = [51.13, 71.43];
@@ -52,7 +53,7 @@ function FitBoundsController({
   properties,
   isochronePolygons,
   isochroneSource
-}: Required<MapPanelProps>) {
+}: Required<Pick<MapPanelProps, "properties" | "isochronePolygons" | "isochroneSource">>) {
   const map = useMap();
 
   useEffect(() => {
@@ -80,7 +81,8 @@ function FitBoundsController({
 export function MapPanel({
   properties,
   isochronePolygons = [],
-  isochroneSource = null
+  isochroneSource = null,
+  showSafetyLayer = true
 }: MapPanelProps) {
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(properties[0]?.id ?? null);
 
@@ -180,7 +182,7 @@ export function MapPanel({
               />
             ))}
 
-            {safetyZones.map((zone) => (
+            {showSafetyLayer ? safetyZones.map((zone) => (
               <Circle
                 key={zone.key}
                 center={zone.center}
@@ -189,16 +191,16 @@ export function MapPanel({
                   pane: "safety",
                   color: zone.color,
                   fillColor: zone.color,
-                  fillOpacity: zone.score >= 80 ? 0.08 : zone.score >= 70 ? 0.13 : 0.18,
+                  fillOpacity: zone.score >= 80 ? 0.08 : zone.score >= 70 ? 0.1 : 0.13,
                   opacity: 0.5,
                   weight: 1
                 }}
               >
                 <Tooltip direction="top" opacity={0.95}>
-                  {zone.district}: безопасность {zone.label.toLowerCase()}
+                  {zone.district}: среда {zone.label.toLowerCase()}
                 </Tooltip>
               </Circle>
-            ))}
+            )) : null}
 
             {isochroneSource ? (
               <CircleMarker
@@ -237,7 +239,7 @@ export function MapPanel({
                         <p className="font-semibold text-ink">{property.title}</p>
                         <p className="mt-1 text-xs text-slate-500">{property.district}</p>
                         <p className="mt-1 text-xs text-slate-500">
-                          Безопасность: {getSafetyProfile(property).label}
+                          Среда района: {getSafetyProfile(property).label}
                         </p>
                         <p className="mt-2 text-sm font-bold">{formatCurrency(property.price)}</p>
                         <a
@@ -273,7 +275,7 @@ export function MapPanel({
                       <p className="font-semibold text-ink">{property.title}</p>
                       <p className="mt-1 text-xs text-slate-500">{property.district}</p>
                       <p className="mt-1 text-xs text-slate-500">
-                        Безопасность: {getSafetyProfile(property).label}
+                        Среда района: {getSafetyProfile(property).label}
                       </p>
                       <p className="mt-2 text-sm font-bold">{formatCurrency(property.price)}</p>
                       <a
@@ -302,25 +304,19 @@ export function MapPanel({
                 ? "Зона времени до работы показана поверх карты и участвует в фильтрации."
                 : "Выберите адрес работы и время в пути, чтобы увидеть доступную зону на карте."}
             </p>
-            <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-100">
-              <span className="inline-flex items-center gap-1">
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> безопаснее
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <span className="h-2.5 w-2.5 rounded-full bg-amber-600" /> средне
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <span className="h-2.5 w-2.5 rounded-full bg-rose-600" /> внимательнее
-              </span>
-            </div>
-            <a
-              className="mt-3 inline-flex text-xs font-semibold text-amber underline-offset-4 hover:underline"
-              href={CRIME_MAP_URL}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Официальная карта преступности
-            </a>
+            {showSafetyLayer ? (
+              <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-100">
+                <span className="inline-flex items-center gap-1">
+                  <span className="h-2.5 w-2.5 rounded-full bg-teal-500" /> спокойнее
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="h-2.5 w-2.5 rounded-full bg-sky-500" /> сбалансированно
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="h-2.5 w-2.5 rounded-full bg-amber-500" /> оживлённее
+                </span>
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -331,7 +327,7 @@ export function MapPanel({
               <p className="mt-1 font-semibold">{selectedProperty.title}</p>
               <p className="mt-2 text-lg font-bold">{formatCurrency(selectedProperty.price)}</p>
               <p className="mt-1 text-sm text-slate-300">
-                Безопасность района: {getSafetyProfile(selectedProperty).label}
+                Среда района: {getSafetyProfile(selectedProperty).label}
               </p>
               <p className="text-sm text-slate-300">
                 {selectedProperty.rooms} комн. · {formatNumber(selectedProperty.areaTotal)} м² ·{" "}
@@ -362,7 +358,7 @@ export function MapPanel({
               <p className="mt-1 font-semibold">{property.title}</p>
               <p className="mt-2 text-lg font-bold">{formatCurrency(property.price)}</p>
               <p className="mt-1 text-sm text-slate-300">
-                Безопасность: {getSafetyProfile(property).label}
+                Среда: {getSafetyProfile(property).label}
               </p>
               <p className="text-sm text-slate-300">
                 {property.rooms} комн. · {formatNumber(property.areaTotal)} м²

@@ -1,6 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
 import { fetchAddressSuggestions, has2GisApiKey } from "../../lib/2gis";
-import { CRIME_MAP_URL } from "../../lib/safety";
 import type { AddressSuggestion } from "../../types/domain";
 import { useSearchStore } from "../../store/searchStore";
 
@@ -26,7 +25,9 @@ const marketTypes = ["Первичный", "Вторичный"];
 
 export function FilterSidebar() {
   const filters = useSearchStore((state) => state.filters);
+  const showSafetyLayer = useSearchStore((state) => state.showSafetyLayer);
   const setFilters = useSearchStore((state) => state.setFilters);
+  const setShowSafetyLayer = useSearchStore((state) => state.setShowSafetyLayer);
   const resetFilters = useSearchStore((state) => state.resetFilters);
   const hasPrecise2gisRouting = has2GisApiKey();
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
@@ -137,25 +138,28 @@ export function FilterSidebar() {
         <div className="flex items-start gap-3">
           <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-white text-navy">
             <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9">
-              <path d="M12 3 5 6v5c0 4.5 2.8 8.2 7 10 4.2-1.8 7-5.5 7-10V6l-7-3Z" />
-              <path d="m9.5 12 1.7 1.7 3.6-4" />
+              <path d="M4 18c4-5 8-5 16 0" />
+              <path d="M6 14c3-3 7-3 12 0" />
+              <path d="M9 10c2-1.5 4-1.5 6 0" />
             </svg>
           </span>
           <div>
-            <p className="text-sm font-semibold text-slate-700">Безопасность района</p>
+            <p className="text-sm font-semibold text-slate-700">Городская среда</p>
             <p className="mt-1 text-sm text-slate-500">
-              Смотрите предварительный индекс в карточках и официальный источник по преступности.
+              Мягкая подсказка по спокойствию и активности района на карте.
             </p>
           </div>
         </div>
-        <a
-          className="mt-4 inline-flex w-full items-center justify-center rounded-full bg-navy px-4 py-3 text-sm font-semibold text-white transition hover:bg-ink"
-          href={CRIME_MAP_URL}
-          target="_blank"
-          rel="noreferrer"
+        <label
+          className="mt-4 flex cursor-pointer items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 text-sm text-slate-700"
         >
-          Открыть карту преступности
-        </a>
+          <span>Показывать слой на карте</span>
+          <input
+            type="checkbox"
+            checked={showSafetyLayer}
+            onChange={(event) => setShowSafetyLayer(event.target.checked)}
+          />
+        </label>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
