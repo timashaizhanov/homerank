@@ -149,7 +149,7 @@ export function CatalogPage() {
 
       <div className="sticky top-3 z-30 mb-6 rounded-[2rem] border border-slate-200 bg-white/95 p-4 shadow-card backdrop-blur">
         <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
-          <label className="relative block">
+          <div className="relative block">
             <span className="sr-only">Свободный поиск по каталогу</span>
             <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
               <svg
@@ -167,6 +167,7 @@ export function CatalogPage() {
               </svg>
             </span>
             <input
+              aria-label="Свободный поиск по каталогу"
               className="h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-12 pr-28 text-base font-medium text-ink outline-none transition placeholder:text-slate-400 focus:border-navy focus:bg-white focus:ring-4 focus:ring-navy/10"
               onChange={(event) => setFilters({ searchQuery: event.target.value })}
               placeholder="Например: 2 комнаты в Есиле, монолит с паркингом, до 50 млн, рядом с транспортом"
@@ -182,7 +183,7 @@ export function CatalogPage() {
                 Очистить
               </button>
             ) : null}
-          </label>
+          </div>
           <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
             Ищет по району, адресу, описанию, дому, ремонту, инфраструктуре и цене.
           </div>
