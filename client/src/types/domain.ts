@@ -206,3 +206,33 @@ export interface IsochroneResult {
   source: Coordinates;
   durationSeconds: number;
 }
+
+export interface SolarMonth {
+  month: string;
+  kwhPerM2: number;
+}
+
+export interface ClimateMonth {
+  month: string;
+  avgTempC: number;
+}
+
+export interface GreeneryResult {
+  score: number;
+  parkCount: number;
+  treeDensity: "низкая" | "средняя" | "высокая";
+}
+
+export interface MarketPrice {
+  city: string;
+  avgPricePerSqmKzt?: number;
+  source: "numbeo" | "fallback";
+}
+
+export interface DeveloperInfo {
+  name: string;
+  rating?: number;
+  reviewCount?: number;
+  address?: string;
+  phone?: string;
+}

@@ -4,6 +4,15 @@ import { Button } from "../components/ui/Button";
 import { api } from "../lib/api";
 import { useAuthStore } from "../store/authStore";
 
+const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+const validatePassword = (password: string) => {
+  if (password.length < 8) return "Минимум 8 символов";
+  if (!/[A-Z]/.test(password)) return "Нужна хотя бы одна заглавная буква";
+  if (!/[0-9]/.test(password)) return "Нужна хотя бы одна цифра";
+  return null;
+};
+
 export function AuthPage() {
   const navigate = useNavigate();
   const setAuth = useAuthStore((state) => state.setAuth);
@@ -11,27 +20,59 @@ export function AuthPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    setLoading(true);
     setError(null);
+
+    if (!validateEmail(email)) {
+      setError("Введите корректный email");
+      return;
+    }
+
+    if (mode === "register") {
+      const passwordError = validatePassword(password);
+      if (passwordError) {
+        setError(passwordError);
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError("Пароли не совпадают");
+        return;
+      }
+      if (name.trim().length < 2) {
+        setError("Введите имя (минимум 2 символа)");
+        return;
+      }
+    }
+
+    setLoading(true);
 
     try {
       const result =
         mode === "login"
           ? await api.login(email, password)
-          : await api.register({ email, name, password });
+          : await api.register({ email, name: name.trim(), password });
 
       setAuth(result);
       navigate("/dashboard");
     } catch (submissionError) {
-      setError(submissionError instanceof Error ? submissionError.message : "Ошибка авторизации");
+      const message =
+        submissionError instanceof Error ? submissionError.message : "Ошибка авторизации";
+      setError(message.includes("401") ? "Неверный email или пароль" : message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const switchMode = (newMode: "login" | "register") => {
+    setMode(newMode);
+    setError(null);
+    setPassword("");
+    setConfirmPassword("");
   };
 
   return (
@@ -43,8 +84,8 @@ export function AuthPage() {
             Вход для кабинета, оплаты отчётов и сохранённых подборок
           </h1>
           <p className="mt-4 text-slate-300">
-            Вход и регистрация работают по email и паролю. Админ-доступ выдаётся только заранее
-            созданным админ-аккаунтам.
+            Вход и регистрация работают по email и паролю. Пароль должен содержать минимум 8
+            символов, заглавную букву и цифру.
           </p>
         </div>
 
@@ -52,14 +93,14 @@ export function AuthPage() {
           <div className="inline-flex rounded-full bg-slate-200 p-1">
             <button
               className={`rounded-full px-4 py-2 text-sm ${mode === "login" ? "bg-white" : ""}`}
-              onClick={() => setMode("login")}
+              onClick={() => switchMode("login")}
               type="button"
             >
               Вход
             </button>
             <button
               className={`rounded-full px-4 py-2 text-sm ${mode === "register" ? "bg-white" : ""}`}
-              onClick={() => setMode("register")}
+              onClick={() => switchMode("register")}
               type="button"
             >
               Регистрация
@@ -101,14 +142,20 @@ export function AuthPage() {
               />
             </label>
 
-            {error ? <div className="rounded-2xl bg-red-50 p-4 text-sm text-red-700">{error}</div> : null}
-
-            {mode === "login" ? (
-              <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
-                Тестовый админ: <span className="font-semibold text-ink">admin@qala.kz</span> /{" "}
-                <span className="font-semibold text-ink">Admin12345!</span>
-              </div>
+            {mode === "register" ? (
+              <label className="block text-sm text-slate-500">
+                Подтвердите пароль
+                <input
+                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  required
+                />
+              </label>
             ) : null}
+
+            {error ? <div className="rounded-2xl bg-red-50 p-4 text-sm text-red-700">{error}</div> : null}
 
             <Button className="w-full" disabled={loading}>
               {loading ? "Подождите..." : mode === "login" ? "Войти" : "Создать аккаунт"}

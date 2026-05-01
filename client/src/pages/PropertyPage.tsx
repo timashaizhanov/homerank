@@ -6,6 +6,37 @@ import { ReportPreview } from "../components/property/ReportPreview";
 import { FavoriteButton } from "../components/property/FavoriteButton";
 import { Button } from "../components/ui/Button";
 
+const DETAIL_KEY_LABELS: Record<string, string> = {
+  balcony: "Балкон",
+  parking: "Парковка",
+  furniture: "Мебель",
+  appliances: "Техника",
+  internet: "Интернет",
+  bathroomType: "Санузел",
+  ceilingHeight: "Высота потолков",
+  security: "Безопасность",
+  elevator: "Лифт",
+  view: "Вид из окна",
+  utilitiesIncluded: "Коммунальные включены",
+  sourceImported: "Источник",
+  conditioner: "Кондиционер",
+  heatingType: "Отопление",
+  windowsType: "Окна",
+  flooringType: "Покрытие пола",
+  entranceDoor: "Входная дверь"
+};
+
+const detailKeyLabel = (key: string) =>
+  DETAIL_KEY_LABELS[key] ?? key.replace(/([A-Z])/g, " $1").toLowerCase();
+
+const formatDetailValue = (value: unknown): string => {
+  if (Array.isArray(value)) return value.join(", ");
+  if (value === true) return "Да";
+  if (value === false) return "Нет";
+  if (typeof value === "number") return String(value);
+  return String(value ?? "—");
+};
+
 export function PropertyPage() {
   const params = useParams<{ id: string }>();
   const { data, isLoading } = useQuery({
@@ -95,9 +126,9 @@ export function PropertyPage() {
             <div className="mt-5 grid gap-3 text-sm text-slate-600">
               {Object.entries(data.details).slice(0, 6).map(([key, value]) => (
                 <div key={key} className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-                  <span className="capitalize">{key}</span>
+                  <span>{detailKeyLabel(key)}</span>
                   <span className="font-semibold text-ink">
-                    {Array.isArray(value) ? value.join(", ") : String(value)}
+                    {formatDetailValue(value)}
                   </span>
                 </div>
               ))}
