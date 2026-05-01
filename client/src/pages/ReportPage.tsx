@@ -5,6 +5,7 @@ import {
   BarChart,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -68,21 +69,25 @@ export function ReportPage() {
   });
 
   if (propertyQuery.isLoading || reportQuery.isLoading) {
-    return <div className="mx-auto max-w-7xl px-4 py-12">Формируем отчёт...</div>;
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <p className="text-slate-500">Формируем отчёт...</p>
+      </div>
+    );
   }
 
   const report = reportQuery.data;
 
   if (!property || !report) {
-    return <div className="mx-auto max-w-7xl px-4 py-12">Отчёт недоступен.</div>;
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <p className="text-slate-500">Отчёт недоступен.</p>
+      </div>
+    );
   }
 
   const handlePurchase = () => {
-    purchaseReport({
-      propertyId: property.id,
-      title: property.title,
-      amountKzt: report.amountKzt
-    });
+    purchaseReport({ propertyId: property.id, title: property.title, amountKzt: report.amountKzt });
   };
 
   const marketPrice = marketPricesQuery.data;
@@ -91,266 +96,342 @@ export function ReportPage() {
       ? Math.round(((property.pricePerSqm - marketPrice.avgPricePerSqmKzt) / marketPrice.avgPricePerSqmKzt) * 100)
       : null;
 
+  const trendData = isPurchased ? property.analytics.priceTrend12m : property.analytics.priceTrend6m;
+
   return (
-    <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <div className="rounded-[2.25rem] bg-ink p-8 text-white shadow-card">
-        <p className="text-sm uppercase tracking-[0.2em] text-amber/80">Полный отчёт</p>
-        <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
+    <section className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+
+      {/* ── Hero ──────────────────────────────────────────────── */}
+      <div className="rounded-[2rem] bg-ink p-8 text-white shadow-card">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber/70">Полный отчёт</p>
+        <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="font-heading text-4xl font-extrabold">{property.title}</h1>
-            <p className="mt-2 text-slate-300">
-              {property.city}, {isPurchased ? property.address : `${property.district}, точный адрес скрыт`}
+            <h1 className="font-heading text-3xl font-extrabold leading-tight">{property.title}</h1>
+            <p className="mt-1 text-slate-400">
+              {property.city} · {isPurchased ? property.address : `${property.district}, точный адрес скрыт`}
             </p>
           </div>
-          <div className="rounded-3xl bg-white/10 px-5 py-4">
-            <p className="text-sm text-slate-300">{isPurchased ? "Статус" : "Разовый платёж"}</p>
-            <p className="text-2xl font-bold text-amber">
-              {isPurchased ? "Куплено" : formatCurrency(report.amountKzt)}
+          <div className="shrink-0 rounded-2xl bg-white/10 px-5 py-3 text-right">
+            <p className="text-xs text-slate-400">{isPurchased ? "Статус" : "Разовый платёж"}</p>
+            <p className="mt-0.5 text-xl font-bold text-amber">
+              {isPurchased ? "Куплено ✓" : formatCurrency(report.amountKzt)}
             </p>
           </div>
         </div>
+
+        {/* Quick stats */}
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[
+            { label: "Цена", value: formatCurrency(property.price) },
+            { label: "Цена/м²", value: `${formatNumber(property.pricePerSqm)} ₸` },
+            { label: "Площадь", value: `${formatNumber(property.areaTotal)} м²` },
+            { label: "Год постройки", value: property.yearBuilt ?? "—" }
+          ].map(({ label, value }) => (
+            <div key={label} className="rounded-xl bg-white/8 px-4 py-3">
+              <p className="text-xs text-slate-400">{label}</p>
+              <p className="mt-0.5 font-semibold text-white">{value}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
+      {/* ── Auth / Purchase CTA ───────────────────────────────── */}
       {!user ? (
-        <div className="mt-8 rounded-[2rem] border border-amber/40 bg-amber/10 p-6">
-          <p className="text-slate-700">
-            Для покупки отчёта нужен вход в аккаунт. После оплаты отчёт сохранится в личном кабинете.
-          </p>
-          <Link className="mt-4 inline-block" to="/auth">
-            <Button>Войти или зарегистрироваться</Button>
+        <div className="mt-4 flex items-center justify-between gap-4 rounded-2xl border border-amber/30 bg-amber/5 px-6 py-4">
+          <p className="text-sm text-slate-600">Войдите, чтобы купить отчёт и сохранить в кабинете.</p>
+          <Link to="/auth">
+            <Button>Войти</Button>
           </Link>
         </div>
       ) : null}
 
       {user && !isPurchased ? (
-        <div className="mt-8 rounded-[2rem] border border-amber/40 bg-ink p-6 text-white shadow-card">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="text-sm uppercase tracking-[0.2em] text-amber/80">Pay per report</p>
-              <h2 className="mt-2 font-heading text-2xl font-bold">
-                Полный отчёт скрыт до покупки
-              </h2>
-              <p className="mt-2 max-w-3xl text-slate-300">
-                После оплаты откроются точный адрес, юридический блок, контакты продавца,
-                расширенная аналитика и объект появится в кабинете.
-              </p>
-            </div>
-            <Button onClick={handlePurchase}>Оплатить {formatCurrency(report.amountKzt)}</Button>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-ink px-6 py-5 text-white shadow-card">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-amber/70">Pay per report</p>
+            <p className="mt-1 font-heading text-xl font-bold">Полный отчёт скрыт до покупки</p>
+            <p className="mt-1 max-w-md text-sm text-slate-400">
+              Откроется точный адрес, юридический блок, контакты продавца и расширенная аналитика.
+            </p>
           </div>
+          <Button onClick={handlePurchase}>Оплатить {formatCurrency(report.amountKzt)}</Button>
         </div>
       ) : null}
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="space-y-6">
-          {/* Investment analysis */}
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-card">
-            <h2 className="font-heading text-2xl font-bold text-ink">Инвестиционный анализ</h2>
-            <div className="mt-5 grid gap-4 sm:grid-cols-3">
-              <div className="rounded-3xl bg-slate-50 p-4">
-                <p className="text-sm text-slate-500">Gross Yield</p>
-                <p className="mt-2 text-2xl font-bold text-navy">{report.investment.rentYield}%</p>
+      {/* ── Investment + Legal (2-col) ────────────────────────── */}
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        {/* Investment */}
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-card">
+          <h2 className="font-heading text-xl font-bold text-ink">Инвестиционный анализ</h2>
+          <div className="mt-4 grid grid-cols-3 gap-3">
+            {[
+              { label: "Gross Yield", value: `${report.investment.rentYield}%` },
+              { label: "Cap Rate", value: `${report.investment.capRate}%` },
+              { label: "ROI 3 года", value: `${report.investment.roiForecast["3y"]}%` }
+            ].map(({ label, value }) => (
+              <div key={label} className="rounded-2xl bg-slate-50 p-3 text-center">
+                <p className="text-xs text-slate-500">{label}</p>
+                <p className="mt-1 text-xl font-bold text-navy">{value}</p>
               </div>
-              <div className="rounded-3xl bg-slate-50 p-4">
-                <p className="text-sm text-slate-500">Cap Rate</p>
-                <p className="mt-2 text-2xl font-bold text-navy">{report.investment.capRate}%</p>
-              </div>
-              <div className="rounded-3xl bg-slate-50 p-4">
-                <p className="text-sm text-slate-500">ROI 3 года</p>
-                <p className="mt-2 text-2xl font-bold text-navy">
-                  {report.investment.roiForecast["3y"]}%
-                </p>
-              </div>
-            </div>
-            <p className="mt-5 text-slate-600">
-              {isPurchased
-                ? report.investment.depositComparison
-                : "Расширенное сравнение с депозитом доступно после покупки отчёта."}
-            </p>
+            ))}
           </div>
-
-          {/* Price trend chart */}
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="font-heading text-2xl font-bold text-ink">Динамика цены</h2>
-                <p className="text-sm text-slate-500">12 месяцев по сегменту и району</p>
-              </div>
+          <div className="mt-4 space-y-2">
+            <div className="flex justify-between rounded-xl bg-slate-50 px-4 py-2.5 text-sm">
+              <span className="text-slate-500">ROI 1 год</span>
+              <span className="font-semibold text-ink">{report.investment.roiForecast["1y"]}%</span>
             </div>
-            <div className="mt-4 h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={isPurchased ? property.analytics.priceTrend12m : property.analytics.priceTrend6m}
-                  margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
-                >
-                  <XAxis dataKey="month" />
-                  <YAxis domain={["auto", "auto"]} width={70} tickFormatter={(v: number) => `${Math.round(v / 1000)}к`} />
-                  <Tooltip formatter={(v: number) => [`${formatNumber(v)} ₸`, "Цена/м²"]} />
-                  <Line type="monotone" dataKey="value" stroke="#d4a017" strokeWidth={3} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
+            <div className="flex justify-between rounded-xl bg-slate-50 px-4 py-2.5 text-sm">
+              <span className="text-slate-500">ROI 5 лет</span>
+              <span className="font-semibold text-ink">{report.investment.roiForecast["5y"]}%</span>
             </div>
           </div>
-
-          {/* Market price comparison */}
-          {marketPrice ? (
-            <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-card">
-              <h2 className="font-heading text-2xl font-bold text-ink">Сравнение с рынком</h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Средняя цена по {marketPrice.city} · источник: {marketPrice.source === "numbeo" ? "Numbeo" : "внутренние данные"}
-              </p>
-              <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                <div className="rounded-3xl bg-slate-50 p-4">
-                  <p className="text-sm text-slate-500">Средняя по городу</p>
-                  <p className="mt-2 text-2xl font-bold text-navy">
-                    {marketPrice.avgPricePerSqmKzt ? `${formatNumber(marketPrice.avgPricePerSqmKzt)} ₸/м²` : "—"}
-                  </p>
-                </div>
-                <div className="rounded-3xl bg-slate-50 p-4">
-                  <p className="text-sm text-slate-500">Этот объект vs рынок</p>
-                  <p className={`mt-2 text-2xl font-bold ${priceVsMarket !== null && priceVsMarket > 0 ? "text-red-500" : "text-emerald-600"}`}>
-                    {priceVsMarket !== null
-                      ? `${priceVsMarket > 0 ? "+" : ""}${priceVsMarket}%`
-                      : "—"}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ) : null}
-
-          {/* Solar data */}
-          {solarQuery.data && solarQuery.data.length > 0 ? (
-            <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-card">
-              <h2 className="font-heading text-2xl font-bold text-ink">Солнечная инсоляция</h2>
-              <p className="text-sm text-slate-500">кВт·ч/м² в месяц · PVGIS EU JRC</p>
-              <div className="mt-4 h-56">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={solarQuery.data} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
-                    <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                    <YAxis width={40} tick={{ fontSize: 12 }} />
-                    <Tooltip formatter={(v: number) => [`${v} кВт·ч/м²`, "Инсоляция"]} />
-                    <Bar dataKey="kwhPerM2" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          ) : null}
-
-          {/* Climate data */}
-          {climateQuery.data && climateQuery.data.length > 0 ? (
-            <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-card">
-              <h2 className="font-heading text-2xl font-bold text-ink">Климат района</h2>
-              <p className="text-sm text-slate-500">Средняя температура 2020–2024 · Open-Meteo</p>
-              <div className="mt-4 h-56">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={climateQuery.data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                    <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                    <YAxis width={40} tickFormatter={(v: number) => `${v}°`} />
-                    <Tooltip formatter={(v: number) => [`${v} °C`, "Температура"]} />
-                    <Line type="monotone" dataKey="avgTempC" stroke="#3b82f6" strokeWidth={2} dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          ) : null}
+          <p className="mt-4 text-sm text-slate-500">
+            {isPurchased
+              ? report.investment.depositComparison
+              : "Сравнение с депозитом откроется после покупки."}
+          </p>
         </div>
 
-        <div className="space-y-6">
-          {/* Legal block */}
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-card">
-            <h2 className="font-heading text-2xl font-bold text-ink">Юридический блок</h2>
-            <div className="mt-4 space-y-3 text-sm text-slate-600">
-              {isPurchased ? (
-                <>
-                  <div className="rounded-2xl bg-slate-50 p-4">{report.legal.ownershipHistory}</div>
-                  <div className="rounded-2xl bg-slate-50 p-4">{report.legal.encumbrances}</div>
-                  <div className="rounded-2xl bg-slate-50 p-4">{report.legal.pledgeCheck}</div>
-                  <div className="rounded-2xl bg-slate-50 p-4">{report.legal.documentType}</div>
-                </>
-              ) : (
-                <>
-                  <div className="rounded-2xl bg-slate-50 p-4">История владения скрыта до покупки.</div>
-                  <div className="rounded-2xl bg-slate-50 p-4">Проверка обременений скрыта до покупки.</div>
-                  <div className="rounded-2xl bg-slate-50 p-4">Проверка на залог скрыта до покупки.</div>
-                  <div className="rounded-2xl bg-slate-50 p-4">Тип документа скрыт до покупки.</div>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Comparables */}
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-card">
-            <h2 className="font-heading text-2xl font-bold text-ink">Топ аналоги</h2>
-            <div className="mt-4 space-y-3">
-              {(isPurchased ? report.market.comparables : report.market.comparables.slice(0, 1)).map((item) => (
-                <div key={item.id} className="rounded-2xl bg-slate-50 p-4">
-                  <p className="font-semibold text-ink">{item.title}</p>
-                  <p className="mt-1 text-sm text-slate-500">
-                    {formatCurrency(item.price)} · {formatNumber(item.pricePerSqm)} ₸/м² ·{" "}
-                    {item.distanceKm} км
-                  </p>
-                </div>
-              ))}
-            </div>
-            <div className="mt-4 rounded-2xl bg-amber/10 p-4 text-sm text-navy">
-              {isPurchased
-                ? `Ликвидность: ${report.market.liquidity}. Средний срок экспозиции ${report.market.exposureDays} дней.`
-                : "Полная оценка ликвидности и расширенная таблица аналогов откроются после покупки."}
-            </div>
-          </div>
-
-          {/* Greenery */}
-          {greeneryQuery.data ? (
-            <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-card">
-              <h2 className="font-heading text-2xl font-bold text-ink">Зелень и природа</h2>
-              <p className="text-sm text-slate-500">Парки и деревья в радиусе 1 км · OpenStreetMap</p>
-              <div className="mt-5 grid grid-cols-3 gap-4">
-                <div className="rounded-3xl bg-slate-50 p-4 text-center">
-                  <p className="text-sm text-slate-500">Рейтинг</p>
-                  <p className="mt-2 text-2xl font-bold text-emerald-600">{greeneryQuery.data.score}/10</p>
-                </div>
-                <div className="rounded-3xl bg-slate-50 p-4 text-center">
-                  <p className="text-sm text-slate-500">Парков</p>
-                  <p className="mt-2 text-2xl font-bold text-navy">{greeneryQuery.data.parkCount}</p>
-                </div>
-                <div className="rounded-3xl bg-slate-50 p-4 text-center">
-                  <p className="text-sm text-slate-500">Деревья</p>
-                  <p className="mt-2 text-2xl font-bold text-navy capitalize">{greeneryQuery.data.treeDensity}</p>
-                </div>
-              </div>
-            </div>
-          ) : null}
-
-          {/* Developer info */}
-          {developerQuery.data && developerQuery.data.length > 0 ? (
-            <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-card">
-              <h2 className="font-heading text-2xl font-bold text-ink">Застройщик / управляющий</h2>
-              <div className="mt-4 space-y-3">
-                {developerQuery.data.map((dev, i) => (
-                  <div key={i} className="rounded-2xl bg-slate-50 p-4">
-                    <p className="font-semibold text-ink">{dev.name}</p>
-                    {dev.rating ? (
-                      <p className="mt-1 text-sm text-slate-500">
-                        Рейтинг 2GIS: {dev.rating} · отзывов: {dev.reviewCount ?? 0}
-                      </p>
-                    ) : null}
-                    {dev.phone ? <p className="mt-1 text-sm text-slate-500">{dev.phone}</p> : null}
-                  </div>
+        {/* Legal */}
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-card">
+          <h2 className="font-heading text-xl font-bold text-ink">Юридический блок</h2>
+          <div className="mt-4 space-y-2 text-sm">
+            {isPurchased ? (
+              <>
+                {[report.legal.ownershipHistory, report.legal.encumbrances, report.legal.pledgeCheck, report.legal.documentType].map((text, i) => (
+                  <div key={i} className="rounded-xl bg-slate-50 px-4 py-3 text-slate-700">{text}</div>
                 ))}
-              </div>
-            </div>
-          ) : null}
+              </>
+            ) : (
+              ["История владения", "Проверка обременений", "Проверка на залог", "Тип документа"].map((label) => (
+                <div key={label} className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 text-slate-400">
+                  <span className="text-base">🔒</span>
+                  <span>{label} — скрыто</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
 
-          {/* Seller contact */}
-          {report.seller && isPurchased ? (
-            <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-card">
-              <h2 className="font-heading text-2xl font-bold text-ink">Контакты продавца</h2>
-              <p className="mt-4 text-slate-700">{report.seller.name}</p>
-              <p className="text-slate-700">{report.seller.phone}</p>
-              {report.seller.agency ? <p className="text-slate-500">{report.seller.agency}</p> : null}
+      {/* ── Price trend (full width) ──────────────────────────── */}
+      <div className="mt-6 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-card">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <h2 className="font-heading text-xl font-bold text-ink">Динамика цены</h2>
+            <p className="text-sm text-slate-500">
+              {isPurchased ? "12 месяцев" : "6 месяцев"} · цена за м² по сегменту
+            </p>
+          </div>
+          {priceVsMarket !== null ? (
+            <span className={`rounded-full px-3 py-1 text-sm font-semibold ${priceVsMarket > 0 ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>
+              {priceVsMarket > 0 ? "+" : ""}{priceVsMarket}% к рынку
+            </span>
+          ) : null}
+        </div>
+        <div className="mt-4 h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={trendData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+              <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+              <YAxis
+                width={65}
+                tick={{ fontSize: 12 }}
+                domain={["auto", "auto"]}
+                tickFormatter={(v: number) => `${Math.round(v / 1000)}к`}
+              />
+              <Tooltip formatter={(v: number) => [`${formatNumber(v)} ₸/м²`, "Цена"]} />
+              {marketPrice?.avgPricePerSqmKzt ? (
+                <ReferenceLine
+                  y={marketPrice.avgPricePerSqmKzt}
+                  stroke="#94a3b8"
+                  strokeDasharray="4 4"
+                  label={{ value: "Ср. по городу", position: "insideTopRight", fontSize: 11, fill: "#94a3b8" }}
+                />
+              ) : null}
+              <Line type="monotone" dataKey="value" stroke="#d4a017" strokeWidth={3} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* ── Comparables ──────────────────────────────────────── */}
+      <div className="mt-6 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-card">
+        <div className="flex items-center justify-between">
+          <h2 className="font-heading text-xl font-bold text-ink">Аналоги в районе</h2>
+          {isPurchased ? (
+            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+              Ликвидность: {report.market.liquidity} · {report.market.exposureDays} дней
+            </span>
+          ) : null}
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {(isPurchased ? report.market.comparables : report.market.comparables.slice(0, 2)).map((item) => (
+            <div key={item.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+              <p className="truncate text-sm font-semibold text-ink">{item.title}</p>
+              <p className="mt-2 text-lg font-bold text-navy">{formatCurrency(item.price)}</p>
+              <p className="text-xs text-slate-500">{formatNumber(item.pricePerSqm)} ₸/м² · {item.distanceKm} км</p>
+            </div>
+          ))}
+          {!isPurchased ? (
+            <div className="flex items-center justify-center rounded-2xl border border-dashed border-slate-200 p-4 text-center text-sm text-slate-400">
+              +{report.market.comparables.length - 2} после покупки
             </div>
           ) : null}
         </div>
       </div>
+
+      {/* ── Environment row (3 cards) ─────────────────────────── */}
+      <div className="mt-6 grid gap-4 sm:grid-cols-3">
+        {/* Market price */}
+        {marketPrice ? (
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-card">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Рынок города</p>
+            <p className="mt-3 text-2xl font-bold text-ink">
+              {marketPrice.avgPricePerSqmKzt ? `${formatNumber(marketPrice.avgPricePerSqmKzt)} ₸` : "—"}
+            </p>
+            <p className="text-sm text-slate-500">средняя цена/м²</p>
+            {priceVsMarket !== null ? (
+              <p className={`mt-3 text-sm font-semibold ${priceVsMarket > 0 ? "text-red-500" : "text-emerald-600"}`}>
+                Этот объект {priceVsMarket > 0 ? "дороже" : "дешевле"} рынка на {Math.abs(priceVsMarket)}%
+              </p>
+            ) : null}
+            <p className="mt-2 text-xs text-slate-400">
+              {marketPrice.source === "numbeo" ? "Numbeo" : "внутренние данные"}
+            </p>
+          </div>
+        ) : null}
+
+        {/* Greenery */}
+        {greeneryQuery.data ? (
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-card">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Зелень района</p>
+            <p className="mt-3 text-2xl font-bold text-emerald-600">{greeneryQuery.data.score}/10</p>
+            <p className="text-sm text-slate-500">рейтинг озеленения</p>
+            <div className="mt-3 space-y-1.5 text-sm">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Парков в 1 км</span>
+                <span className="font-semibold text-ink">{greeneryQuery.data.parkCount}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Плотность деревьев</span>
+                <span className="font-semibold text-ink capitalize">{greeneryQuery.data.treeDensity}</span>
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-slate-400">OpenStreetMap · Overpass</p>
+          </div>
+        ) : null}
+
+        {/* Developer */}
+        {developerQuery.data && developerQuery.data.length > 0 ? (
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-card">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Застройщик</p>
+            {developerQuery.data.slice(0, 1).map((dev, i) => (
+              <div key={i}>
+                <p className="mt-3 text-base font-bold text-ink">{dev.name}</p>
+                {dev.rating ? (
+                  <p className="mt-1 text-2xl font-bold text-navy">★ {dev.rating}</p>
+                ) : null}
+                {dev.reviewCount ? (
+                  <p className="text-sm text-slate-500">{dev.reviewCount} отзывов</p>
+                ) : null}
+                {dev.phone ? (
+                  <p className="mt-2 text-sm text-slate-600">{dev.phone}</p>
+                ) : null}
+              </div>
+            ))}
+            <p className="mt-2 text-xs text-slate-400">2GIS</p>
+          </div>
+        ) : null}
+      </div>
+
+      {/* ── Climate chart ────────────────────────────────────── */}
+      {climateQuery.data && climateQuery.data.length > 0 ? (
+        <div className="mt-4 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-card">
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="font-heading text-xl font-bold text-ink">Климат района</h2>
+              <p className="text-sm text-slate-500">Средняя температура 2020–2024 · Open-Meteo</p>
+            </div>
+            <div className="text-right text-sm">
+              <p className="font-semibold text-ink">
+                {Math.max(...climateQuery.data.map((d) => d.avgTempC))}°C макс
+              </p>
+              <p className="text-slate-500">
+                {Math.min(...climateQuery.data.map((d) => d.avgTempC))}°C мин
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 h-52">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={climateQuery.data} margin={{ top: 5, right: 16, left: 0, bottom: 0 }}>
+                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                <YAxis width={40} tick={{ fontSize: 12 }} tickFormatter={(v: number) => `${v}°`} />
+                <ReferenceLine y={0} stroke="#cbd5e1" strokeDasharray="3 3" />
+                <Tooltip formatter={(v: number) => [`${v} °C`, "Температура"]} />
+                <Line
+                  type="monotone"
+                  dataKey="avgTempC"
+                  stroke="#3b82f6"
+                  strokeWidth={2.5}
+                  dot={{ r: 3, fill: "#3b82f6" }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      ) : null}
+
+      {/* ── Solar chart ──────────────────────────────────────── */}
+      {solarQuery.data && solarQuery.data.length > 0 ? (
+        <div className="mt-4 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-card">
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="font-heading text-xl font-bold text-ink">Солнечная инсоляция</h2>
+              <p className="text-sm text-slate-500">кВт·ч/м² в месяц · PVGIS EU JRC</p>
+            </div>
+            <div className="text-right text-sm">
+              <p className="font-semibold text-ink">
+                {solarQuery.data.reduce((a, b) => a + b.kwhPerM2, 0).toFixed(0)} кВт·ч/год
+              </p>
+              <p className="text-slate-500">суммарно на 1 м²</p>
+            </div>
+          </div>
+          <div className="mt-4 h-52">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={solarQuery.data} margin={{ top: 5, right: 16, left: 0, bottom: 0 }}>
+                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                <YAxis width={40} tick={{ fontSize: 12 }} />
+                <Tooltip formatter={(v: number) => [`${v} кВт·ч/м²`, "Инсоляция"]} />
+                <Bar dataKey="kwhPerM2" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      ) : null}
+
+      {/* ── Seller contacts ──────────────────────────────────── */}
+      {report.seller && isPurchased ? (
+        <div className="mt-4 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-card">
+          <h2 className="font-heading text-xl font-bold text-ink">Контакты продавца</h2>
+          <div className="mt-4 flex flex-wrap gap-6 text-sm">
+            <div>
+              <p className="text-slate-500">Имя</p>
+              <p className="font-semibold text-ink">{report.seller.name}</p>
+            </div>
+            <div>
+              <p className="text-slate-500">Телефон</p>
+              <p className="font-semibold text-ink">{report.seller.phone}</p>
+            </div>
+            {report.seller.agency ? (
+              <div>
+                <p className="text-slate-500">Агентство</p>
+                <p className="font-semibold text-ink">{report.seller.agency}</p>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
     </section>
   );
 }
