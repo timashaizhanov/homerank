@@ -4,6 +4,7 @@ import propertyRoutes from "./routes/propertyRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import locationRoutes from "./routes/locationRoutes.js";
+import environmentRoutes from "./routes/environmentRoutes.js";
 
 export const createApp = () => {
   const app = express();
@@ -39,6 +40,7 @@ export const createApp = () => {
   app.use("/api/locations", locationRoutes);
   app.use("/api/auth", authRoutes);
   app.use("/api/admin", adminRoutes);
+  app.use("/api/environment", environmentRoutes);
 
   return app;
 };

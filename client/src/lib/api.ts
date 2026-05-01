@@ -1,11 +1,16 @@
 import type {
   AdminSummaryResponse,
   AuthResponse,
+  ClimateMonth,
+  DeveloperInfo,
+  GreeneryResult,
   MarketAnalyticsResponse,
+  MarketPrice,
   Property,
   PropertyListResponse,
   ReportResponse,
-  SearchFilters
+  SearchFilters,
+  SolarMonth
 } from "../types/domain";
 import { geocodeAddress } from "./2gis";
 import { buildQuery } from "./utils";
@@ -333,6 +338,85 @@ const buildStaticReport = (property: Property): ReportResponse => ({
   seller: property.seller
 });
 
+const MONTH_NAMES = [
+  "Янв", "Фев", "Мар", "Апр", "Май", "Июн",
+  "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"
+];
+
+const fetchPvgisDirectly = async (lat: number, lon: number): Promise<SolarMonth[]> => {
+  const url = new URL("https://re.jrc.ec.europa.eu/api/v5_2/PVcalc");
+  url.searchParams.set("lat", String(lat));
+  url.searchParams.set("lon", String(lon));
+  url.searchParams.set("peakpower", "1");
+  url.searchParams.set("loss", "14");
+  url.searchParams.set("outputformat", "json");
+
+  const response = await fetch(url.toString());
+  if (!response.ok) throw new Error(`PVGIS error: ${response.status}`);
+
+  const data = (await response.json()) as {
+    outputs?: { monthly?: { fixed?: Array<{ month: number; "E_m": number }> } }
+  };
+
+  return (data.outputs?.monthly?.fixed ?? []).map((item) => ({
+    month: MONTH_NAMES[(item.month - 1) % 12],
+    kwhPerM2: Math.round(item["E_m"] * 10) / 10
+  }));
+};
+
+const fetchOpenMeteoDirectly = async (lat: number, lon: number): Promise<ClimateMonth[]> => {
+  const url = new URL("https://archive-api.open-meteo.com/v1/archive");
+  url.searchParams.set("latitude", String(lat));
+  url.searchParams.set("longitude", String(lon));
+  url.searchParams.set("start_date", "2020-01-01");
+  url.searchParams.set("end_date", "2024-12-31");
+  url.searchParams.set("monthly", "temperature_2m_mean");
+
+  const response = await fetch(url.toString());
+  if (!response.ok) throw new Error(`Open-Meteo error: ${response.status}`);
+
+  const data = (await response.json()) as {
+    monthly?: { time?: string[]; temperature_2m_mean?: number[] }
+  };
+
+  const times = data.monthly?.time ?? [];
+  const temps = data.monthly?.temperature_2m_mean ?? [];
+  const byMonth: Record<number, number[]> = {};
+  times.forEach((t, i) => {
+    const m = new Date(t).getUTCMonth();
+    (byMonth[m] ??= []).push(temps[i] ?? 0);
+  });
+
+  return MONTH_NAMES.map((name, idx) => {
+    const vals = byMonth[idx] ?? [];
+    const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+    return { month: name, avgTempC: Math.round(avg * 10) / 10 };
+  });
+};
+
+const fetchOverpassDirectly = async (lat: number, lon: number): Promise<GreeneryResult> => {
+  const OVERPASS = "https://overpass-api.de/api/interpreter";
+
+  const parkQuery = `[out:json][timeout:15];(way["leisure"="park"](around:1000,${lat},${lon});way["natural"="wood"](around:1000,${lat},${lon}););out count;`;
+  const treeQuery = `[out:json][timeout:15];node["natural"="tree"](around:500,${lat},${lon});out count;`;
+
+  const [parkRes, treeRes] = await Promise.all([
+    fetch(OVERPASS, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: `data=${encodeURIComponent(parkQuery)}` }),
+    fetch(OVERPASS, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: `data=${encodeURIComponent(treeQuery)}` })
+  ]);
+
+  const parkData = (await parkRes.json()) as { elements?: Array<{ tags?: { total?: string } }> };
+  const treeData = (await treeRes.json()) as { elements?: Array<{ tags?: { total?: string } }> };
+
+  const parkCount = Number(parkData.elements?.[0]?.tags?.total ?? 0);
+  const treeCount = Number(treeData.elements?.[0]?.tags?.total ?? 0);
+  const score = Math.min(10, Math.round(parkCount * 2 + treeCount * 0.1));
+  const treeDensity: GreeneryResult["treeDensity"] =
+    treeCount > 50 ? "высокая" : treeCount > 15 ? "средняя" : "низкая";
+
+  return { score, parkCount, treeDensity };
+};
+
 async function request<T>(path: string): Promise<T> {
   const authRaw =
     typeof window !== "undefined" ? window.localStorage.getItem("qala-auth") : null;
@@ -502,5 +586,43 @@ export const api = {
     }
 
     return response.json() as Promise<AuthResponse>;
+  },
+
+  async getSolarData(lat: number, lon: number): Promise<SolarMonth[]> {
+    if (usesStaticApi) {
+      return fetchPvgisDirectly(lat, lon);
+    }
+    return request<SolarMonth[]>(`/environment/solar?lat=${lat}&lon=${lon}`);
+  },
+
+  async getClimateData(lat: number, lon: number): Promise<ClimateMonth[]> {
+    if (usesStaticApi) {
+      return fetchOpenMeteoDirectly(lat, lon);
+    }
+    return request<ClimateMonth[]>(`/environment/climate?lat=${lat}&lon=${lon}`);
+  },
+
+  async getGreeneryData(lat: number, lon: number): Promise<GreeneryResult> {
+    if (usesStaticApi) {
+      return fetchOverpassDirectly(lat, lon);
+    }
+    return request<GreeneryResult>(`/environment/greenery?lat=${lat}&lon=${lon}`);
+  },
+
+  async getMarketPrices(city: string): Promise<MarketPrice> {
+    if (usesStaticApi) {
+      const fallback: Record<string, number> = { "Астана": 680_000, "Алматы": 920_000 };
+      return { city, avgPricePerSqmKzt: fallback[city], source: "fallback" };
+    }
+    return request<MarketPrice>(`/environment/market-prices?city=${encodeURIComponent(city)}`);
+  },
+
+  async getDeveloperInfo(address: string, city: string): Promise<DeveloperInfo[]> {
+    if (usesStaticApi) {
+      return [];
+    }
+    return request<DeveloperInfo[]>(
+      `/environment/developer?address=${encodeURIComponent(address)}&city=${encodeURIComponent(city)}`
+    );
   }
 };

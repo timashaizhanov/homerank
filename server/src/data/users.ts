@@ -1,32 +1,45 @@
+import { createHash, randomBytes, scryptSync, timingSafeEqual } from "crypto";
+
 export interface DemoUserRecord {
   id: string;
   email: string;
   name: string;
   role: "user" | "realtor" | "admin";
-  password: string;
+  passwordHash: string;
 }
 
 const users = new Map<string, DemoUserRecord>();
 
-const seedUsers: DemoUserRecord[] = [
-  {
-    id: "admin@qala.kz",
-    email: "admin@qala.kz",
-    name: "Qala Admin",
-    role: "admin",
-    password: process.env.DEMO_ADMIN_PASSWORD
-  },
-  {
-    id: "realtor@qala.kz",
-    email: "realtor@qala.kz",
-    name: "Demo Realtor",
-    role: "realtor",
-    password: process.env.DEMO_REALTOR_PASSWORD
+const hashPassword = (password: string, salt?: string): string => {
+  const s = salt ?? randomBytes(16).toString("hex");
+  const hash = scryptSync(password, s, 64).toString("hex");
+  return `${s}:${hash}`;
+};
+
+const verifyPassword = (password: string, stored: string): boolean => {
+  const [salt, hash] = stored.split(":");
+  if (!salt || !hash) return false;
+  try {
+    const derivedHash = scryptSync(password, salt, 64);
+    return timingSafeEqual(Buffer.from(hash, "hex"), derivedHash);
+  } catch {
+    return false;
   }
+};
+
+const seedUsers: Array<{ id: string; email: string; name: string; role: DemoUserRecord["role"]; password: string }> = [
+  { id: "admin@qala.kz", email: "admin@qala.kz", name: "Qala Admin", role: "admin", password: process.env.DEMO_ADMIN_PASSWORD },
+  { id: "realtor@qala.kz", email: "realtor@qala.kz", name: "Demo Realtor", role: "realtor", password: process.env.DEMO_REALTOR_PASSWORD }
 ];
 
-for (const user of seedUsers) {
-  users.set(user.email.toLowerCase(), user);
+for (const seed of seedUsers) {
+  users.set(seed.email.toLowerCase(), {
+    id: seed.id,
+    email: seed.email,
+    name: seed.name,
+    role: seed.role,
+    passwordHash: hashPassword(seed.password)
+  });
 }
 
 export const findUserByEmail = (email: string) => users.get(email.toLowerCase()) ?? null;
@@ -39,11 +52,11 @@ export const registerUser = (payload: { email: string; name: string; password: s
   }
 
   const user: DemoUserRecord = {
-    id: normalizedEmail,
+    id: createHash("sha256").update(normalizedEmail).digest("hex").slice(0, 16),
     email: normalizedEmail,
     name: payload.name,
     role: "user",
-    password: payload.password
+    passwordHash: hashPassword(payload.password)
   };
 
   users.set(normalizedEmail, user);
@@ -53,7 +66,7 @@ export const registerUser = (payload: { email: string; name: string; password: s
 export const authenticateUser = (payload: { email: string; password: string }) => {
   const user = findUserByEmail(payload.email);
 
-  if (!user || user.password !== payload.password) {
+  if (!user || !verifyPassword(payload.password, user.passwordHash)) {
     return null;
   }
 
