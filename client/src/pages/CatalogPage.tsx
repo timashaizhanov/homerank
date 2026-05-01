@@ -132,26 +132,56 @@ export function CatalogPage() {
             Поиск недвижимости по районам
           </h1>
         </div>
-        <div className="inline-flex rounded-full bg-slate-200 p-1">
+        <div className="flex items-center gap-2">
           <button
-            className={`rounded-full px-4 py-2 text-sm ${viewMode === "list" ? "bg-white" : ""}`}
-            onClick={() => setViewMode("list")}
+            type="button"
+            aria-expanded={isSmartSearchOpen}
+            aria-label={isSmartSearchOpen ? "Скрыть умный поиск" : "Открыть умный поиск"}
+            className={`relative inline-flex h-11 w-11 items-center justify-center rounded-full border transition ${
+              isSmartSearchOpen || filters.searchQuery
+                ? "border-navy bg-navy text-white shadow-card"
+                : "border-slate-200 bg-white text-slate-600 hover:border-navy hover:text-navy"
+            }`}
+            onClick={() => setIsSmartSearchOpen((current) => !current)}
+            title="Умный поиск"
           >
-            Список
+            <svg
+              aria-hidden="true"
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3.5-3.5" />
+            </svg>
+            {filters.searchQuery ? (
+              <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-amber ring-2 ring-white" />
+            ) : null}
           </button>
-          <button
-            className={`rounded-full px-4 py-2 text-sm ${viewMode === "map" ? "bg-white" : ""}`}
-            onClick={() => setViewMode("map")}
-          >
-            Карта
-          </button>
+          <div className="inline-flex rounded-full bg-slate-200 p-1">
+            <button
+              className={`rounded-full px-4 py-2 text-sm ${viewMode === "list" ? "bg-white" : ""}`}
+              onClick={() => setViewMode("list")}
+            >
+              Список
+            </button>
+            <button
+              className={`rounded-full px-4 py-2 text-sm ${viewMode === "map" ? "bg-white" : ""}`}
+              onClick={() => setViewMode("map")}
+            >
+              Карта
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="sticky top-3 z-30 mb-6 rounded-[1.5rem] border border-slate-200 bg-white/95 p-3 shadow-card backdrop-blur">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative block">
-            <span className="sr-only">Свободный поиск по каталогу</span>
+      {isSmartSearchOpen ? (
+        <div className="mb-6 rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-card">
+          <div className="relative">
             <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
               <svg
                 aria-hidden="true"
@@ -169,21 +199,10 @@ export function CatalogPage() {
             </span>
             <input
               aria-label="Свободный поиск по каталогу"
-              className={`h-11 rounded-full border border-slate-200 bg-slate-50 pl-11 text-sm font-semibold text-ink outline-none transition-all placeholder:text-slate-400 focus:border-navy focus:bg-white focus:ring-4 focus:ring-navy/10 ${
-                isSmartSearchOpen || filters.searchQuery
-                  ? "w-full pr-24 sm:w-[520px]"
-                  : "w-[210px] pr-4"
-              }`}
-              onChange={(event) => {
-                setFilters({ searchQuery: event.target.value });
-                setIsSmartSearchOpen(true);
-              }}
-              onFocus={() => setIsSmartSearchOpen(true)}
-              placeholder={
-                isSmartSearchOpen || filters.searchQuery
-                  ? "2 комнаты в Есиле, монолит с паркингом, до 50 млн"
-                  : "Умный поиск"
-              }
+              autoFocus
+              className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-12 pr-28 text-sm font-semibold text-ink outline-none transition placeholder:text-slate-400 focus:border-navy focus:bg-white focus:ring-4 focus:ring-navy/10"
+              onChange={(event) => setFilters({ searchQuery: event.target.value })}
+              placeholder="2 комнаты в Есиле, монолит с паркингом, до 50 млн"
               type="search"
               value={filters.searchQuery}
             />
@@ -197,50 +216,29 @@ export function CatalogPage() {
               </button>
             ) : null}
           </div>
-          {(isSmartSearchOpen || filters.searchQuery) ? (
-            <button
-              type="button"
-              className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-500 transition hover:border-navy hover:text-navy"
-              onClick={() => setIsSmartSearchOpen(false)}
-            >
-              Свернуть
-            </button>
-          ) : (
-            <span className="text-xs text-slate-500">Можно писать обычным текстом</span>
-          )}
-        </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <p className="mr-1 text-xs text-slate-500">Быстро:</p>
+            {quickSearches.map((item) => {
+              const active = filters.searchQuery === item.query;
 
-        {(isSmartSearchOpen || filters.searchQuery) ? (
-          <div className="mt-3 border-t border-slate-100 pt-3">
-            <p className="text-xs text-slate-500">
-              Например: район, тип дома, ремонт, паркинг, цена или транспорт рядом.
-            </p>
-            <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
-              {quickSearches.map((item) => {
-                const active = filters.searchQuery === item.query;
-
-                return (
-                  <button
-                    key={item.label}
-                    type="button"
-                    className={`shrink-0 rounded-full border px-3 py-2 text-sm font-semibold transition ${
-                      active
-                        ? "border-navy bg-navy text-white"
-                        : "border-slate-200 bg-white text-slate-600 hover:border-navy hover:text-navy"
-                    }`}
-                    onClick={() => {
-                      setFilters({ searchQuery: item.query });
-                      setIsSmartSearchOpen(true);
-                    }}
-                  >
-                    {item.label}
-                  </button>
-                );
-              })}
-            </div>
+              return (
+                <button
+                  key={item.label}
+                  type="button"
+                  className={`shrink-0 rounded-full border px-3 py-2 text-sm font-semibold transition ${
+                    active
+                      ? "border-navy bg-navy text-white"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-navy hover:text-navy"
+                  }`}
+                  onClick={() => setFilters({ searchQuery: item.query })}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
           </div>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
         <FilterSidebar />
