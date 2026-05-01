@@ -6,6 +6,25 @@ import { formatCurrency, formatDate, formatNumber } from "../../lib/utils";
 import { Button } from "../ui/Button";
 import { FavoriteButton } from "./FavoriteButton";
 
+const DETAIL_KEY_LABELS: Record<string, string> = {
+  balcony: "Балкон",
+  parking: "Парковка",
+  furniture: "Мебель",
+  appliances: "Техника",
+  internet: "Интернет",
+  bathroomType: "Санузел",
+  ceilingHeight: "Высота потолков",
+  security: "Безопасность",
+  elevator: "Лифт",
+  view: "Вид из окна",
+  utilitiesIncluded: "Коммунальные включены",
+  conditioner: "Кондиционер",
+  heatingType: "Отопление",
+  windowsType: "Окна",
+  flooringType: "Покрытие пола",
+  entranceDoor: "Входная дверь"
+};
+
 interface PropertyDrawerProps {
   property: Property | null;
   onClose: () => void;
@@ -242,9 +261,9 @@ export function PropertyDrawer({ property, onClose }: PropertyDrawerProps) {
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 {details.map(([key, value]) => (
                   <div key={key} className="rounded-2xl bg-slate-50 px-3 py-2 text-sm">
-                    <p className="text-slate-500">{key}</p>
+                    <p className="text-slate-500">{DETAIL_KEY_LABELS[key] ?? key.replace(/([A-Z])/g, " $1").toLowerCase()}</p>
                     <p className="mt-1 font-semibold text-ink">
-                      {Array.isArray(value) ? value.join(", ") : String(value)}
+                      {Array.isArray(value) ? value.join(", ") : value === true ? "Да" : value === false ? "Нет" : String(value)}
                     </p>
                   </div>
                 ))}
