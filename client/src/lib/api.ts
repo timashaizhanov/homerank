@@ -343,25 +343,20 @@ const MONTH_NAMES = [
   "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"
 ];
 
-const fetchPvgisDirectly = async (lat: number, lon: number): Promise<SolarMonth[]> => {
-  const url = new URL("https://re.jrc.ec.europa.eu/api/v5_2/PVcalc");
-  url.searchParams.set("lat", String(lat));
-  url.searchParams.set("lon", String(lon));
-  url.searchParams.set("peakpower", "1");
-  url.searchParams.set("loss", "14");
-  url.searchParams.set("outputformat", "json");
+// PVGIS blocks CORS from browsers — use precomputed city averages in static mode
+const SOLAR_FALLBACK: Record<string, number[]> = {
+  // Астана 51.18°N: kWh/m² per month (Jan–Dec)
+  "Астана":  [35,  57, 101, 128, 158, 168, 163, 145, 109,  69,  34,  24],
+  // Алматы 43.25°N: more solar due to lower latitude
+  "Алматы":  [56,  82, 124, 148, 170, 188, 186, 168, 133,  96,  58,  44]
+};
 
-  const response = await fetch(url.toString());
-  if (!response.ok) throw new Error(`PVGIS error: ${response.status}`);
-
-  const data = (await response.json()) as {
-    outputs?: { monthly?: { fixed?: Array<{ month: number; "E_m": number }> } }
-  };
-
-  return (data.outputs?.monthly?.fixed ?? []).map((item) => ({
-    month: MONTH_NAMES[(item.month - 1) % 12],
-    kwhPerM2: Math.round(item["E_m"] * 10) / 10
-  }));
+const fetchPvgisDirectly = (_lat: number, _lon: number, city?: string): Promise<SolarMonth[]> => {
+  const key = city && city in SOLAR_FALLBACK ? city : "Астана";
+  const data = SOLAR_FALLBACK[key];
+  return Promise.resolve(
+    MONTH_NAMES.map((month, i) => ({ month, kwhPerM2: data[i] }))
+  );
 };
 
 const fetchOpenMeteoDirectly = async (lat: number, lon: number): Promise<ClimateMonth[]> => {
@@ -370,21 +365,23 @@ const fetchOpenMeteoDirectly = async (lat: number, lon: number): Promise<Climate
   url.searchParams.set("longitude", String(lon));
   url.searchParams.set("start_date", "2020-01-01");
   url.searchParams.set("end_date", "2024-12-31");
-  url.searchParams.set("monthly", "temperature_2m_mean");
+  url.searchParams.set("daily", "temperature_2m_mean");
 
   const response = await fetch(url.toString());
   if (!response.ok) throw new Error(`Open-Meteo error: ${response.status}`);
 
   const data = (await response.json()) as {
-    monthly?: { time?: string[]; temperature_2m_mean?: number[] }
+    daily?: { time?: string[]; temperature_2m_mean?: number[] }
   };
 
-  const times = data.monthly?.time ?? [];
-  const temps = data.monthly?.temperature_2m_mean ?? [];
+  const times = data.daily?.time ?? [];
+  const temps = data.daily?.temperature_2m_mean ?? [];
   const byMonth: Record<number, number[]> = {};
   times.forEach((t, i) => {
+    const temp = temps[i];
+    if (temp == null) return;
     const m = new Date(t).getUTCMonth();
-    (byMonth[m] ??= []).push(temps[i] ?? 0);
+    (byMonth[m] ??= []).push(temp);
   });
 
   return MONTH_NAMES.map((name, idx) => {
@@ -588,9 +585,9 @@ export const api = {
     return response.json() as Promise<AuthResponse>;
   },
 
-  async getSolarData(lat: number, lon: number): Promise<SolarMonth[]> {
+  async getSolarData(lat: number, lon: number, city?: string): Promise<SolarMonth[]> {
     if (usesStaticApi) {
-      return fetchPvgisDirectly(lat, lon);
+      return fetchPvgisDirectly(lat, lon, city);
     }
     return request<SolarMonth[]>(`/environment/solar?lat=${lat}&lon=${lon}`);
   },

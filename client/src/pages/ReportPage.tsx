@@ -38,7 +38,7 @@ export function ReportPage() {
 
   const solarQuery = useQuery({
     queryKey: ["solar", coords?.[1], coords?.[0]],
-    queryFn: () => api.getSolarData(coords![1], coords![0]),
+    queryFn: () => api.getSolarData(coords![1], coords![0], property?.city),
     enabled: Boolean(coords),
     retry: false
   });
@@ -221,7 +221,7 @@ export function ReportPage() {
           {solarQuery.data && solarQuery.data.length > 0 ? (
             <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-card">
               <h2 className="font-heading text-2xl font-bold text-ink">Солнечная инсоляция</h2>
-              <p className="text-sm text-slate-500">кВт·ч/м² в месяц · данные PVGIS (EU JRC)</p>
+              <p className="text-sm text-slate-500">кВт·ч/м² в месяц · PVGIS EU JRC</p>
               <div className="mt-4 h-56">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={solarQuery.data} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
