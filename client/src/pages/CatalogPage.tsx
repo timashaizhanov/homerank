@@ -24,6 +24,7 @@ export function CatalogPage() {
   const setFilters = useSearchStore((state) => state.setFilters);
   const [page, setPage] = useState(1);
   const [drawerProperty, setDrawerProperty] = useState<Property | null>(null);
+  const [isSmartSearchOpen, setIsSmartSearchOpen] = useState(false);
   const pageSize = 24;
   const quickSearches = [
     { label: "2 комн. в Есиле", query: "2 комн Есиль" },
@@ -147,8 +148,8 @@ export function CatalogPage() {
         </div>
       </div>
 
-      <div className="sticky top-3 z-30 mb-6 rounded-[2rem] border border-slate-200 bg-white/95 p-4 shadow-card backdrop-blur">
-        <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
+      <div className="sticky top-3 z-30 mb-6 rounded-[1.5rem] border border-slate-200 bg-white/95 p-3 shadow-card backdrop-blur">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="relative block">
             <span className="sr-only">Свободный поиск по каталогу</span>
             <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
@@ -168,9 +169,21 @@ export function CatalogPage() {
             </span>
             <input
               aria-label="Свободный поиск по каталогу"
-              className="h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-12 pr-28 text-base font-medium text-ink outline-none transition placeholder:text-slate-400 focus:border-navy focus:bg-white focus:ring-4 focus:ring-navy/10"
-              onChange={(event) => setFilters({ searchQuery: event.target.value })}
-              placeholder="Например: 2 комнаты в Есиле, монолит с паркингом, до 50 млн, рядом с транспортом"
+              className={`h-11 rounded-full border border-slate-200 bg-slate-50 pl-11 text-sm font-semibold text-ink outline-none transition-all placeholder:text-slate-400 focus:border-navy focus:bg-white focus:ring-4 focus:ring-navy/10 ${
+                isSmartSearchOpen || filters.searchQuery
+                  ? "w-full pr-24 sm:w-[520px]"
+                  : "w-[210px] pr-4"
+              }`}
+              onChange={(event) => {
+                setFilters({ searchQuery: event.target.value });
+                setIsSmartSearchOpen(true);
+              }}
+              onFocus={() => setIsSmartSearchOpen(true)}
+              placeholder={
+                isSmartSearchOpen || filters.searchQuery
+                  ? "2 комнаты в Есиле, монолит с паркингом, до 50 млн"
+                  : "Умный поиск"
+              }
               type="search"
               value={filters.searchQuery}
             />
@@ -184,31 +197,49 @@ export function CatalogPage() {
               </button>
             ) : null}
           </div>
-          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
-            Ищет по району, адресу, описанию, дому, ремонту, инфраструктуре и цене.
+          {(isSmartSearchOpen || filters.searchQuery) ? (
+            <button
+              type="button"
+              className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-500 transition hover:border-navy hover:text-navy"
+              onClick={() => setIsSmartSearchOpen(false)}
+            >
+              Свернуть
+            </button>
+          ) : (
+            <span className="text-xs text-slate-500">Можно писать обычным текстом</span>
+          )}
+        </div>
+
+        {(isSmartSearchOpen || filters.searchQuery) ? (
+          <div className="mt-3 border-t border-slate-100 pt-3">
+            <p className="text-xs text-slate-500">
+              Например: район, тип дома, ремонт, паркинг, цена или транспорт рядом.
+            </p>
+            <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+              {quickSearches.map((item) => {
+                const active = filters.searchQuery === item.query;
+
+                return (
+                  <button
+                    key={item.label}
+                    type="button"
+                    className={`shrink-0 rounded-full border px-3 py-2 text-sm font-semibold transition ${
+                      active
+                        ? "border-navy bg-navy text-white"
+                        : "border-slate-200 bg-white text-slate-600 hover:border-navy hover:text-navy"
+                    }`}
+                    onClick={() => {
+                      setFilters({ searchQuery: item.query });
+                      setIsSmartSearchOpen(true);
+                    }}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-
-        <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-          {quickSearches.map((item) => {
-            const active = filters.searchQuery === item.query;
-
-            return (
-              <button
-                key={item.label}
-                type="button"
-                className={`shrink-0 rounded-full border px-3 py-2 text-sm font-semibold transition ${
-                  active
-                    ? "border-navy bg-navy text-white"
-                    : "border-slate-200 bg-white text-slate-600 hover:border-navy hover:text-navy"
-                }`}
-                onClick={() => setFilters({ searchQuery: item.query })}
-              >
-                {item.label}
-              </button>
-            );
-          })}
-        </div>
+        ) : null}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
