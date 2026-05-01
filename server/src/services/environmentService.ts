@@ -74,7 +74,7 @@ export const fetchClimateData = async (lat: number, lon: number): Promise<Climat
   url.searchParams.set("longitude", String(lon));
   url.searchParams.set("start_date", "2020-01-01");
   url.searchParams.set("end_date", "2024-12-31");
-  url.searchParams.set("monthly", "temperature_2m_mean");
+  url.searchParams.set("daily", "temperature_2m_mean");
 
   const response = await fetch(url.toString(), { signal: AbortSignal.timeout(10000) });
 
@@ -83,14 +83,14 @@ export const fetchClimateData = async (lat: number, lon: number): Promise<Climat
   }
 
   const data = (await response.json()) as {
-    monthly?: {
+    daily?: {
       time?: string[];
       temperature_2m_mean?: number[];
     }
   };
 
-  const times = data.monthly?.time ?? [];
-  const temps = data.monthly?.temperature_2m_mean ?? [];
+  const times = data.daily?.time ?? [];
+  const temps = data.daily?.temperature_2m_mean ?? [];
 
   const byMonth: Record<number, number[]> = {};
   times.forEach((t, i) => {
