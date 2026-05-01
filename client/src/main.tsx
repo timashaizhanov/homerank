@@ -7,11 +7,15 @@ import App from "./App";
 import "./styles.css";
 
 const queryClient = new QueryClient();
+const routerBasename =
+  window.location.hostname.endsWith("github.io") && window.location.pathname.startsWith("/homerank")
+    ? "/homerank"
+    : "/";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter basename={import.meta.env.BASE_URL}>
+      <BrowserRouter basename={routerBasename}>
         <App />
       </BrowserRouter>
     </QueryClientProvider>
