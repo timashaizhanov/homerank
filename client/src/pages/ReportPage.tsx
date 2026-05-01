@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   Bar,
@@ -16,6 +17,18 @@ import { api } from "../lib/api";
 import { formatCurrency, formatNumber } from "../lib/utils";
 import { useAuthStore } from "../store/authStore";
 import { usePurchasesStore } from "../store/purchasesStore";
+
+function Locked({ children, label = "Доступно после покупки" }: { children: ReactNode; label?: string }) {
+  return (
+    <div className="relative select-none overflow-hidden rounded-xl">
+      <div className="pointer-events-none blur-sm">{children}</div>
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 rounded-xl bg-white/60 backdrop-blur-[2px]">
+        <span className="text-lg">🔒</span>
+        <span className="text-xs font-semibold text-slate-500">{label}</span>
+      </div>
+    </div>
+  );
+}
 
 export function ReportPage() {
   const params = useParams<{ id: string }>();
@@ -176,40 +189,57 @@ export function ReportPage() {
             ))}
           </div>
           <div className="mt-4 space-y-2">
-            <div className="flex justify-between rounded-xl bg-slate-50 px-4 py-2.5 text-sm">
-              <span className="text-slate-500">ROI 1 год</span>
-              <span className="font-semibold text-ink">{report.investment.roiForecast["1y"]}%</span>
-            </div>
-            <div className="flex justify-between rounded-xl bg-slate-50 px-4 py-2.5 text-sm">
-              <span className="text-slate-500">ROI 5 лет</span>
-              <span className="font-semibold text-ink">{report.investment.roiForecast["5y"]}%</span>
-            </div>
+            {isPurchased ? (
+              <>
+                <div className="flex justify-between rounded-xl bg-slate-50 px-4 py-2.5 text-sm">
+                  <span className="text-slate-500">ROI 1 год</span>
+                  <span className="font-semibold text-ink">{report.investment.roiForecast["1y"]}%</span>
+                </div>
+                <div className="flex justify-between rounded-xl bg-slate-50 px-4 py-2.5 text-sm">
+                  <span className="text-slate-500">ROI 5 лет</span>
+                  <span className="font-semibold text-ink">{report.investment.roiForecast["5y"]}%</span>
+                </div>
+              </>
+            ) : (
+              <Locked>
+                <div className="flex justify-between rounded-xl bg-slate-50 px-4 py-2.5 text-sm">
+                  <span className="text-slate-500">ROI 1 год</span>
+                  <span className="font-semibold text-ink">{report.investment.roiForecast["1y"]}%</span>
+                </div>
+                <div className="mt-2 flex justify-between rounded-xl bg-slate-50 px-4 py-2.5 text-sm">
+                  <span className="text-slate-500">ROI 5 лет</span>
+                  <span className="font-semibold text-ink">{report.investment.roiForecast["5y"]}%</span>
+                </div>
+              </Locked>
+            )}
           </div>
-          <p className="mt-4 text-sm text-slate-500">
-            {isPurchased
-              ? report.investment.depositComparison
-              : "Сравнение с депозитом откроется после покупки."}
-          </p>
+          {isPurchased ? (
+            <p className="mt-4 text-sm text-slate-500">{report.investment.depositComparison}</p>
+          ) : (
+            <Locked label="Сравнение с депозитом после покупки">
+              <p className="mt-4 text-sm text-slate-400">{report.investment.depositComparison}</p>
+            </Locked>
+          )}
         </div>
 
         {/* Legal */}
         <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-card">
           <h2 className="font-heading text-xl font-bold text-ink">Юридический блок</h2>
           <div className="mt-4 space-y-2 text-sm">
-            {isPurchased ? (
-              <>
-                {[report.legal.ownershipHistory, report.legal.encumbrances, report.legal.pledgeCheck, report.legal.documentType].map((text, i) => (
-                  <div key={i} className="rounded-xl bg-slate-50 px-4 py-3 text-slate-700">{text}</div>
-                ))}
-              </>
-            ) : (
-              ["История владения", "Проверка обременений", "Проверка на залог", "Тип документа"].map((label) => (
-                <div key={label} className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 text-slate-400">
-                  <span className="text-base">🔒</span>
-                  <span>{label} — скрыто</span>
-                </div>
-              ))
-            )}
+            {[
+              { label: "История владения", value: report.legal.ownershipHistory },
+              { label: "Обременения", value: report.legal.encumbrances },
+              { label: "Залог", value: report.legal.pledgeCheck },
+              { label: "Тип документа", value: report.legal.documentType }
+            ].map(({ label, value }) => (
+              isPurchased ? (
+                <div key={label} className="rounded-xl bg-slate-50 px-4 py-3 text-slate-700">{value}</div>
+              ) : (
+                <Locked key={label} label={label}>
+                  <div className="rounded-xl bg-slate-50 px-4 py-3 text-slate-700">{value}</div>
+                </Locked>
+              )
+            ))}
           </div>
         </div>
       </div>
@@ -262,21 +292,32 @@ export function ReportPage() {
             <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
               Ликвидность: {report.market.liquidity} · {report.market.exposureDays} дней
             </span>
-          ) : null}
+          ) : (
+            <Locked label="Ликвидность после покупки">
+              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                Ликвидность: {report.market.liquidity} · {report.market.exposureDays} дней
+              </span>
+            </Locked>
+          )}
         </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {(isPurchased ? report.market.comparables : report.market.comparables.slice(0, 2)).map((item) => (
-            <div key={item.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-              <p className="truncate text-sm font-semibold text-ink">{item.title}</p>
-              <p className="mt-2 text-lg font-bold text-navy">{formatCurrency(item.price)}</p>
-              <p className="text-xs text-slate-500">{formatNumber(item.pricePerSqm)} ₸/м² · {item.distanceKm} км</p>
-            </div>
+          {report.market.comparables.map((item, i) => (
+            i === 0 || isPurchased ? (
+              <div key={item.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                <p className="truncate text-sm font-semibold text-ink">{item.title}</p>
+                <p className="mt-2 text-lg font-bold text-navy">{formatCurrency(item.price)}</p>
+                <p className="text-xs text-slate-500">{formatNumber(item.pricePerSqm)} ₸/м² · {item.distanceKm} км</p>
+              </div>
+            ) : (
+              <Locked key={item.id}>
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <p className="truncate text-sm font-semibold text-ink">{item.title}</p>
+                  <p className="mt-2 text-lg font-bold text-navy">{formatCurrency(item.price)}</p>
+                  <p className="text-xs text-slate-500">{formatNumber(item.pricePerSqm)} ₸/м² · {item.distanceKm} км</p>
+                </div>
+              </Locked>
+            )
           ))}
-          {!isPurchased ? (
-            <div className="flex items-center justify-center rounded-2xl border border-dashed border-slate-200 p-4 text-center text-sm text-slate-400">
-              +{report.market.comparables.length - 2} после покупки
-            </div>
-          ) : null}
         </div>
       </div>
 
@@ -410,25 +451,46 @@ export function ReportPage() {
       ) : null}
 
       {/* ── Seller contacts ──────────────────────────────────── */}
-      {report.seller && isPurchased ? (
+      {report.seller ? (
         <div className="mt-4 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-card">
           <h2 className="font-heading text-xl font-bold text-ink">Контакты продавца</h2>
-          <div className="mt-4 flex flex-wrap gap-6 text-sm">
-            <div>
-              <p className="text-slate-500">Имя</p>
-              <p className="font-semibold text-ink">{report.seller.name}</p>
-            </div>
-            <div>
-              <p className="text-slate-500">Телефон</p>
-              <p className="font-semibold text-ink">{report.seller.phone}</p>
-            </div>
-            {report.seller.agency ? (
+          {isPurchased ? (
+            <div className="mt-4 flex flex-wrap gap-6 text-sm">
               <div>
-                <p className="text-slate-500">Агентство</p>
-                <p className="font-semibold text-ink">{report.seller.agency}</p>
+                <p className="text-slate-500">Имя</p>
+                <p className="font-semibold text-ink">{report.seller.name}</p>
               </div>
-            ) : null}
-          </div>
+              <div>
+                <p className="text-slate-500">Телефон</p>
+                <p className="font-semibold text-ink">{report.seller.phone}</p>
+              </div>
+              {report.seller.agency ? (
+                <div>
+                  <p className="text-slate-500">Агентство</p>
+                  <p className="font-semibold text-ink">{report.seller.agency}</p>
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <Locked label="Контакты после покупки">
+              <div className="mt-4 flex flex-wrap gap-6 text-sm">
+                <div>
+                  <p className="text-slate-500">Имя</p>
+                  <p className="font-semibold text-ink">{report.seller.name}</p>
+                </div>
+                <div>
+                  <p className="text-slate-500">Телефон</p>
+                  <p className="font-semibold text-ink">{report.seller.phone}</p>
+                </div>
+                {report.seller.agency ? (
+                  <div>
+                    <p className="text-slate-500">Агентство</p>
+                    <p className="font-semibold text-ink">{report.seller.agency}</p>
+                  </div>
+                ) : null}
+              </div>
+            </Locked>
+          )}
         </div>
       ) : null}
 
