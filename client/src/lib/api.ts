@@ -17,7 +17,8 @@ const API_URL =
     : "http://127.0.0.1:4000/api");
 const STATIC_API_URL = `${import.meta.env.BASE_URL}api`;
 const usesStaticApi =
-  typeof window !== "undefined" && window.location.hostname.endsWith("github.io");
+  typeof window !== "undefined" &&
+  (window.location.hostname.endsWith("github.io") || window.location.hostname === "uide.online");
 export const usesStaticApiMode = usesStaticApi;
 
 let staticPropertiesCache: Promise<Property[]> | null = null;
