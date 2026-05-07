@@ -27,12 +27,32 @@ const verifyPassword = (password: string, stored: string): boolean => {
   }
 };
 
-const seedUsers: Array<{ id: string; email: string; name: string; role: DemoUserRecord["role"]; password: string }> = [
-  { id: "admin@qala.kz", email: "admin@qala.kz", name: "Home Rank Admin", role: "admin", password: process.env.DEMO_ADMIN_PASSWORD },
-  { id: "realtor@qala.kz", email: "realtor@qala.kz", name: "Demo Realtor", role: "realtor", password: process.env.DEMO_REALTOR_PASSWORD }
+const seedUsers: Array<{
+  id: string;
+  email: string;
+  name: string;
+  role: DemoUserRecord["role"];
+  password?: string;
+}> = [
+  {
+    id: process.env.DEMO_ADMIN_EMAIL ?? "admin@qala.kz",
+    email: process.env.DEMO_ADMIN_EMAIL ?? "admin@qala.kz",
+    name: "Home Rank Admin",
+    role: "admin",
+    password: process.env.DEMO_ADMIN_PASSWORD
+  },
+  {
+    id: process.env.DEMO_REALTOR_EMAIL ?? "realtor@qala.kz",
+    email: process.env.DEMO_REALTOR_EMAIL ?? "realtor@qala.kz",
+    name: "Demo Realtor",
+    role: "realtor",
+    password: process.env.DEMO_REALTOR_PASSWORD
+  }
 ];
 
 for (const seed of seedUsers) {
+  if (!seed.password) continue;
+
   users.set(seed.email.toLowerCase(), {
     id: seed.id,
     email: seed.email,

@@ -461,6 +461,68 @@ const fetchOverpassDirectly = async (lat: number, lon: number): Promise<Greenery
   return { score, parkCount, treeDensity };
 };
 
+interface StaticAuthUser {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  passwordHash: string;
+}
+
+const STATIC_AUTH_STORAGE_KEY = "qala-static-users-v2";
+
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
+
+const hashStaticPassword = async (password: string, email: string) => {
+  if (typeof window === "undefined" || !window.crypto?.subtle) {
+    throw new Error("Браузер не поддерживает безопасное локальное хранение пароля");
+  }
+
+  const payload = new TextEncoder().encode(`${normalizeEmail(email)}:${password}`);
+  const digest = await window.crypto.subtle.digest("SHA-256", payload);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+};
+
+const getStaticAuthUsers = () => {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  const raw = window.localStorage.getItem(STATIC_AUTH_STORAGE_KEY);
+
+  if (!raw) {
+    return [];
+  }
+
+  try {
+    return JSON.parse(raw) as StaticAuthUser[];
+  } catch {
+    window.localStorage.removeItem(STATIC_AUTH_STORAGE_KEY);
+    return [];
+  }
+};
+
+const saveStaticAuthUser = (user: StaticAuthUser) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(STATIC_AUTH_STORAGE_KEY, JSON.stringify([...getStaticAuthUsers(), user]));
+};
+
+const buildStaticAuthResponse = (user: StaticAuthUser) =>
+  ({
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role
+    },
+    token: `static-pages-demo-token-${user.id}`
+  }) satisfies AuthResponse;
+
 async function request<T>(path: string): Promise<T> {
   const authRaw =
     typeof window !== "undefined" ? window.localStorage.getItem("qala-auth") : null;
@@ -579,16 +641,16 @@ export const api = {
     return request<AdminSummaryResponse>("/admin/summary");
   },
   async login(email: string, password: string) {
-    if (usesStaticApi && email.toLowerCase() === "admin@qala.kz" && password === "REDACTED_DEMO_PASSWORD") {
-      return {
-        user: {
-          id: "admin@qala.kz",
-          email: "admin@qala.kz",
-          name: "Home Rank Admin",
-          role: "admin"
-        },
-        token: "static-pages-demo-token"
-      } satisfies AuthResponse;
+    if (usesStaticApi) {
+      const normalizedEmail = normalizeEmail(email);
+      const user = getStaticAuthUsers().find((item) => item.email === normalizedEmail);
+      const passwordHash = await hashStaticPassword(password, normalizedEmail);
+
+      if (!user || user.passwordHash !== passwordHash) {
+        throw new Error("API error: 401");
+      }
+
+      return buildStaticAuthResponse(user);
     }
 
     const response = await fetch(`${API_URL}/auth/login`, {
@@ -607,15 +669,22 @@ export const api = {
   },
   async register(payload: { email: string; name: string; password: string }) {
     if (usesStaticApi) {
-      return {
-        user: {
-          id: payload.email.toLowerCase(),
-          email: payload.email.toLowerCase(),
-          name: payload.name,
-          role: "user"
-        },
-        token: "static-pages-demo-token"
-      } satisfies AuthResponse;
+      const email = normalizeEmail(payload.email);
+
+      if (getStaticAuthUsers().some((user) => user.email === email)) {
+        throw new Error("Пользователь с таким email уже существует");
+      }
+
+      const user: StaticAuthUser = {
+        id: `static-${Date.now().toString(36)}`,
+        email,
+        name: payload.name.trim(),
+        role: "user",
+        passwordHash: await hashStaticPassword(payload.password, email)
+      };
+
+      saveStaticAuthUser(user);
+      return buildStaticAuthResponse(user);
     }
 
     const response = await fetch(`${API_URL}/auth/register`, {
