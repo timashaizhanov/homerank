@@ -1,6 +1,6 @@
 export const copy = {
   ru: {
-    brand: "Qala Analytics",
+    brand: "Home Rank",
     nav: ["Каталог", "Кабинет", "Admin"],
     heroTitle: "Аналитика недвижимости Астаны и Алматы для решений, а не догадок",
     heroText:
@@ -10,7 +10,7 @@ export const copy = {
     currencySuffix: "₸"
   },
   kk: {
-    brand: "Qala Analytics",
+    brand: "Home Rank",
     nav: ["Каталог", "Кабинет", "Admin"],
     heroTitle: "Астана мен Алматы жылжымайтын мүлік аналитикасы",
     heroText:

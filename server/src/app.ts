@@ -31,7 +31,7 @@ export const createApp = () => {
   app.get("/api/health", (_req, res) => {
     res.json({
       status: "ok",
-      service: "qala-analytics-api",
+      service: "home-rank-api",
       date: new Date().toISOString()
     });
   });

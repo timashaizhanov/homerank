@@ -536,7 +536,7 @@ export const api = {
         user: {
           id: "admin@qala.kz",
           email: "admin@qala.kz",
-          name: "Qala Admin",
+          name: "Home Rank Admin",
           role: "admin"
         },
         token: "static-pages-demo-token"

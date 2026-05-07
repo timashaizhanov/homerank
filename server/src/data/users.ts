@@ -28,7 +28,7 @@ const verifyPassword = (password: string, stored: string): boolean => {
 };
 
 const seedUsers: Array<{ id: string; email: string; name: string; role: DemoUserRecord["role"]; password: string }> = [
-  { id: "admin@qala.kz", email: "admin@qala.kz", name: "Qala Admin", role: "admin", password: process.env.DEMO_ADMIN_PASSWORD },
+  { id: "admin@qala.kz", email: "admin@qala.kz", name: "Home Rank Admin", role: "admin", password: process.env.DEMO_ADMIN_PASSWORD },
   { id: "realtor@qala.kz", email: "realtor@qala.kz", name: "Demo Realtor", role: "realtor", password: process.env.DEMO_REALTOR_PASSWORD }
 ];
 

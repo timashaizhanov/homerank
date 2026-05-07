@@ -7,5 +7,5 @@ const app = createApp();
 const port = Number(process.env.PORT ?? 4000);
 
 app.listen(port, () => {
-  console.log(`Qala Analytics API listening on http://localhost:${port}`);
+  console.log(`Home Rank API listening on http://localhost:${port}`);
 });

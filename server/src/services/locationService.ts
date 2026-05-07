@@ -100,7 +100,7 @@ export const fetchLocationSuggestions = async (
   const response = await fetch(url.toString(), {
     headers: {
       Accept: "application/json",
-      "User-Agent": "Qala Analytics MVP/0.1 (local development)"
+      "User-Agent": "Home Rank/0.1 (local development)"
     }
   });
 

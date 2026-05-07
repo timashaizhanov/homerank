@@ -550,7 +550,7 @@ const createGeneratedApartment = (index: number): Property => {
       phone: `+7 70${(index % 9) + 1} ${String(100 + (index % 900)).slice(0, 3)} ${String(
         10 + (index % 90)
       )} ${String(10 + ((index * 3) % 90))}`,
-      agency: index % 3 === 0 ? "Qala Partners" : "Prime Realty Kazakhstan"
+      agency: index % 3 === 0 ? "Home Rank Partners" : "Prime Realty Kazakhstan"
     },
     details: {
       balcony: index % 2 === 0 ? "Застеклён" : "Есть",
