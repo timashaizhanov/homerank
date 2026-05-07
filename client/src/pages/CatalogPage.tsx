@@ -294,7 +294,7 @@ export function CatalogPage() {
               onOpenDetails={setDrawerProperty}
             />
           ) : null}
-          <div className="grid gap-4 xl:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {isLoading ? <p>Загружаем объекты...</p> : null}
             {filteredItems.map((property) => (
               <PropertyCard

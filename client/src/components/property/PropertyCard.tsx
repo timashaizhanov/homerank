@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { KeyboardEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import type { Property } from "../../types/domain";
 import { formatCurrency, formatDate, formatNumber } from "../../lib/utils";
 import { getSafetyProfile } from "../../lib/safety";
@@ -12,11 +13,32 @@ interface PropertyCardProps {
 }
 
 export function PropertyCard({ property, compact = false, onOpenDetails }: PropertyCardProps) {
+  const navigate = useNavigate();
   const visibleFeatures = compact ? property.features.slice(0, 2) : property.features;
   const safety = getSafetyProfile(property);
+  const handleOpen = () => {
+    if (onOpenDetails) {
+      onOpenDetails(property);
+      return;
+    }
+
+    navigate(`/properties/${property.id}`);
+  };
+  const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      handleOpen();
+    }
+  };
 
   return (
-    <article className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-card transition hover:-translate-y-1">
+    <article
+      className="cursor-pointer overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-card transition hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-navy/10"
+      onClick={handleOpen}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
+    >
       <div className="relative">
         <img
           className={`${compact ? "h-36" : "h-56"} w-full object-cover`}
@@ -96,23 +118,12 @@ export function PropertyCard({ property, compact = false, onOpenDetails }: Prope
               Опубликовано {formatDate(property.publishedAt)} · Источник {property.sourceName}
             </p>
           </div>
-          <div className={`${compact ? "grid grid-cols-[auto_1fr_1fr] gap-2" : "flex gap-3"}`}>
+          <div
+            className={`${compact ? "grid grid-cols-[auto_1fr] gap-2" : "flex gap-3"}`}
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={(event) => event.stopPropagation()}
+          >
             <FavoriteButton propertyId={property.id} />
-            {onOpenDetails ? (
-              <Button
-                onClick={() => onOpenDetails(property)}
-                variant="secondary"
-                className={compact ? "px-3 py-2" : undefined}
-              >
-                Карточка
-              </Button>
-            ) : (
-              <Link to={`/properties/${property.id}`} className="contents">
-                <Button variant="secondary" className={compact ? "px-3 py-2" : undefined}>
-                  Карточка
-                </Button>
-              </Link>
-            )}
             <Link to={`/reports/${property.id}`} className="contents">
               <Button className={compact ? "px-3 py-2" : undefined}>Отчёт</Button>
             </Link>

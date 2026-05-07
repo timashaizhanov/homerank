@@ -8,6 +8,9 @@ const outputPath = resolve(__dirname, "../src/data/realProperties.json");
 const userAgent =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36";
 
+const detailConcurrency = 4;
+const detailDelayMs = 180;
+
 const sources = [
   {
     city: "Астана",
@@ -31,6 +34,16 @@ const cleanText = (value) =>
     .trim();
 
 const parsePrice = (value) => Number(cleanText(value).replace(/[^\d]/g, ""));
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const toKrishaFullImage = (image) => {
+  if (!image) {
+    return null;
+  }
+
+  return image.replace(/-\d+x\d+\.(webp|jpe?g)$/i, "-full.$1");
+};
 
 const parseRoomsAndArea = (title) => {
   const roomsMatch = title.match(/(\d+)-комнат/);
@@ -67,8 +80,84 @@ const parseCardMatch = (match, city) => {
     rooms,
     areaTotal,
     image,
+    images: image ? [toKrishaFullImage(image) ?? image] : [],
     rawSubtitle: subtitle
   };
+};
+
+const parseAdvertPayload = (html) => {
+  const match = html.match(/window\.data\s*=\s*(\{[\s\S]*?\});/);
+
+  if (!match) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(match[1]);
+  } catch {
+    return null;
+  }
+};
+
+const fetchListingPhotos = async (listing) => {
+  await sleep(detailDelayMs);
+
+  const response = await fetch(listing.sourceUrl, {
+    headers: {
+      "user-agent": userAgent,
+      accept: "text/html,application/xhtml+xml"
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch ${listing.sourceUrl}: ${response.status}`);
+  }
+
+  const html = await response.text();
+  const payload = parseAdvertPayload(html);
+  const photoUrls =
+    payload?.advert?.photos
+      ?.map((photo) => (typeof photo?.src === "string" ? photo.src : null))
+      .filter(Boolean) ?? [];
+
+  if (photoUrls.length) {
+    return Array.from(new Set(photoUrls));
+  }
+
+  return listing.image ? [toKrishaFullImage(listing.image) ?? listing.image] : [];
+};
+
+const enrichWithDetailPhotos = async (listings) => {
+  const enriched = new Array(listings.length);
+  let cursor = 0;
+
+  const worker = async () => {
+    while (cursor < listings.length) {
+      const currentIndex = cursor;
+      cursor += 1;
+      const listing = listings[currentIndex];
+
+      try {
+        const images = await fetchListingPhotos(listing);
+        enriched[currentIndex] = {
+          ...listing,
+          image: images[0] ?? listing.image ?? null,
+          images
+        };
+      } catch (error) {
+        console.warn(`Photo import failed for ${listing.sourceUrl}:`, error instanceof Error ? error.message : error);
+        const fallbackImage = toKrishaFullImage(listing.image) ?? listing.image ?? null;
+        enriched[currentIndex] = {
+          ...listing,
+          image: fallbackImage,
+          images: fallbackImage ? [fallbackImage] : []
+        };
+      }
+    }
+  };
+
+  await Promise.all(Array.from({ length: detailConcurrency }, () => worker()));
+  return enriched;
 };
 
 const parseListPage = async (url, city) => {
@@ -102,11 +191,12 @@ const main = async () => {
   }
 
   const deduped = Array.from(new Map(allCards.map((item) => [item.sourceId, item])).values());
+  const enriched = await enrichWithDetailPhotos(deduped);
 
   await mkdir(dirname(outputPath), { recursive: true });
-  await writeFile(outputPath, JSON.stringify(deduped, null, 2), "utf8");
+  await writeFile(outputPath, JSON.stringify(enriched, null, 2), "utf8");
 
-  console.log(`Imported ${deduped.length} real listings into ${outputPath}`);
+  console.log(`Imported ${enriched.length} real listings with full photos into ${outputPath}`);
 };
 
 main().catch((error) => {

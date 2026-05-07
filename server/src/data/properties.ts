@@ -647,6 +647,14 @@ const normalizeDistrict = (city: "Астана" | "Алматы", district: stri
   Object.keys(districtCenters[city]).find((name) => district.includes(name.replace(" р-н", ""))) ??
   district;
 
+const toKrishaFullImage = (image?: string | null) => {
+  if (!image) {
+    return null;
+  }
+
+  return image.replace(/-\d+x\d+\.(webp|jpe?g)$/i, "-full.$1");
+};
+
 const createRealListingProperty = (
   item: {
     id: string;
@@ -705,7 +713,7 @@ const createRealListingProperty = (
       index % 2 === 0 ? "Подземный паркинг" : "Рядом остановка",
       item.city === "Алматы" ? "Городская инфраструктура" : "Развитый район"
     ],
-    images: item.image ? [item.image] : [apartmentImages[index % apartmentImages.length]],
+    images: item.image ? [toKrishaFullImage(item.image) ?? item.image] : [apartmentImages[index % apartmentImages.length]],
     badges: ["Реальные данные"],
     nearbyCount: 14 + (index % 34),
     distanceToTransitKm: Number((0.2 + (index % 6) * 0.15).toFixed(1)),
@@ -779,9 +787,11 @@ const createRealListingProperty = (
 
 const importedRealProperties = realProperties.map((item, index) => createRealListingProperty(item, index));
 
-export const properties: Property[] = importedRealProperties.length
+export const allProperties: Property[] = importedRealProperties.length
   ? [...importedRealProperties, ...featuredProperties, ...generatedProperties]
   : [...featuredProperties, ...generatedProperties];
+
+export const properties: Property[] = importedRealProperties.length ? importedRealProperties : allProperties;
 
 export const districtAnalytics = (
   Object.entries(districtCatalog) as Array<[keyof typeof districtCatalog, (typeof districtCatalog)["Астана"]]>

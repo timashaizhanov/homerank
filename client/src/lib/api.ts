@@ -288,6 +288,53 @@ const getDistanceKm = (from: { lon: number; lat: number }, to: [number, number])
   return earthRadiusKm * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
 };
 
+const getDistanceBetweenCoordinatesKm = (from: [number, number], to: [number, number]) => {
+  const earthRadiusKm = 6371;
+  const lat1 = (from[1] * Math.PI) / 180;
+  const lat2 = (to[1] * Math.PI) / 180;
+  const deltaLat = ((to[1] - from[1]) * Math.PI) / 180;
+  const deltaLon = ((to[0] - from[0]) * Math.PI) / 180;
+  const haversine =
+    Math.sin(deltaLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLon / 2) ** 2;
+
+  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+};
+
+const getComparableProperties = (property: Property, properties: Property[]) => {
+  const comparableItems = properties
+    .filter((candidate) =>
+      candidate.id !== property.id &&
+      candidate.city === property.city &&
+      candidate.operation === property.operation &&
+      candidate.category === property.category
+    )
+    .map((candidate) => {
+      const distanceKm = getDistanceBetweenCoordinatesKm(property.coordinates, candidate.coordinates);
+      const score =
+        (candidate.district === property.district ? 0 : 180) +
+        (candidate.rooms === property.rooms ? 0 : 120) +
+        (candidate.propertyType === property.propertyType ? 0 : 80) +
+        Math.abs(candidate.pricePerSqm - property.pricePerSqm) / 2500 +
+        Math.abs(candidate.areaTotal - property.areaTotal) * 1.8 +
+        distanceKm * 14;
+
+      return { candidate, distanceKm, score };
+    })
+    .sort((left, right) => left.score - right.score)
+    .slice(0, 5)
+    .map(({ candidate, distanceKm }) => ({
+      id: candidate.id,
+      title: candidate.title,
+      price: candidate.price,
+      pricePerSqm: candidate.pricePerSqm,
+      area: candidate.areaTotal,
+      distanceKm: Number(distanceKm.toFixed(1))
+    }));
+
+  return comparableItems.length ? comparableItems : property.analytics.comparables;
+};
+
 const filterStaticCommute = async (properties: Property[], filters: SearchFilters) => {
   if (filters.workAddress.trim().length < 3 || !filters.maxTravelMinutes) {
     return properties;
@@ -306,7 +353,7 @@ const filterStaticCommute = async (properties: Property[], filters: SearchFilter
   return properties.filter((property) => getDistanceKm(location, property.coordinates) <= radiusKm);
 };
 
-const buildStaticReport = (property: Property): ReportResponse => ({
+const buildStaticReport = (property: Property, properties: Property[]): ReportResponse => ({
   unlocked: true,
   amountKzt: 3500,
   propertyId: property.id,
@@ -331,7 +378,7 @@ const buildStaticReport = (property: Property): ReportResponse => ({
   legal: property.legal,
   infrastructure: property.infrastructure,
   market: {
-    comparables: property.analytics.comparables,
+    comparables: getComparableProperties(property, properties),
     liquidity: property.analytics.liquidity,
     exposureDays: property.analytics.exposureDays
   },
@@ -490,7 +537,8 @@ export const api = {
   },
   async getReport(id: string) {
     if (usesStaticApi) {
-      return buildStaticReport(await api.getProperty(id));
+      const [property, properties] = await Promise.all([api.getProperty(id), getStaticProperties()]);
+      return buildStaticReport(property, properties);
     }
 
     return request<ReportResponse>(`/properties/${id}/report`);

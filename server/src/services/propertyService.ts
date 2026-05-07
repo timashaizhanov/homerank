@@ -1,4 +1,4 @@
-import { districtAnalytics, properties } from "../data/properties.js";
+import { allProperties, districtAnalytics, properties } from "../data/properties.js";
 import { Property, PropertyFilters } from "../types/domain.js";
 
 const parseNumber = (value?: string): number | undefined => {
@@ -263,7 +263,54 @@ export const filterProperties = (filters: PropertyFilters): Property[] =>
   });
 
 export const getPropertyById = (id: string): Property | undefined =>
-  properties.find((property) => property.id === id || property.slug === id);
+  allProperties.find((property) => property.id === id || property.slug === id);
+
+const getDistanceBetweenCoordinatesKm = (from: [number, number], to: [number, number]) => {
+  const earthRadiusKm = 6371;
+  const lat1 = (from[1] * Math.PI) / 180;
+  const lat2 = (to[1] * Math.PI) / 180;
+  const deltaLat = ((to[1] - from[1]) * Math.PI) / 180;
+  const deltaLon = ((to[0] - from[0]) * Math.PI) / 180;
+  const haversine =
+    Math.sin(deltaLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLon / 2) ** 2;
+
+  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+};
+
+const getComparableProperties = (property: Property) => {
+  const comparableItems = properties
+    .filter((candidate) =>
+      candidate.id !== property.id &&
+      candidate.city === property.city &&
+      candidate.operation === property.operation &&
+      candidate.category === property.category
+    )
+    .map((candidate) => {
+      const distanceKm = getDistanceBetweenCoordinatesKm(property.coordinates, candidate.coordinates);
+      const score =
+        (candidate.district === property.district ? 0 : 180) +
+        (candidate.rooms === property.rooms ? 0 : 120) +
+        (candidate.propertyType === property.propertyType ? 0 : 80) +
+        Math.abs(candidate.pricePerSqm - property.pricePerSqm) / 2500 +
+        Math.abs(candidate.areaTotal - property.areaTotal) * 1.8 +
+        distanceKm * 14;
+
+      return { candidate, distanceKm, score };
+    })
+    .sort((left, right) => left.score - right.score)
+    .slice(0, 5)
+    .map(({ candidate, distanceKm }) => ({
+      id: candidate.id,
+      title: candidate.title,
+      price: candidate.price,
+      pricePerSqm: candidate.pricePerSqm,
+      area: candidate.areaTotal,
+      distanceKm: Number(distanceKm.toFixed(1))
+    }));
+
+  return comparableItems.length ? comparableItems : property.analytics.comparables;
+};
 
 export const getPropertyReport = (id: string) => {
   const property = getPropertyById(id);
@@ -279,7 +326,7 @@ export const getPropertyReport = (id: string) => {
 
       return {
         date: date.toISOString().slice(0, 10),
-      pricePerSqm: point.value
+        pricePerSqm: point.value
       };
     }),
     investment: {
@@ -295,7 +342,7 @@ export const getPropertyReport = (id: string) => {
     legal: property.legal,
     infrastructure: property.infrastructure,
     market: {
-      comparables: property.analytics.comparables,
+      comparables: getComparableProperties(property),
       liquidity: property.analytics.liquidity,
       exposureDays: property.analytics.exposureDays
     },

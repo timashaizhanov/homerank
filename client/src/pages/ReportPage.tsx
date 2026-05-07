@@ -303,11 +303,16 @@ export function ReportPage() {
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {report.market.comparables.map((item, i) => (
             i === 0 || isPurchased ? (
-              <div key={item.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+              <Link
+                key={item.id}
+                to={`/properties/${item.id}`}
+                className="block rounded-2xl border border-slate-100 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-navy/20 hover:bg-white hover:shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy/30"
+              >
                 <p className="truncate text-sm font-semibold text-ink">{item.title}</p>
                 <p className="mt-2 text-lg font-bold text-navy">{formatCurrency(item.price)}</p>
                 <p className="text-xs text-slate-500">{formatNumber(item.pricePerSqm)} ₸/м² · {item.distanceKm} км</p>
-              </div>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-navy">Открыть карточку</p>
+              </Link>
             ) : (
               <Locked key={item.id}>
                 <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
